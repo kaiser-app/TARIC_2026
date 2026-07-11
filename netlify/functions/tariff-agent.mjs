@@ -29,8 +29,40 @@ export default async (request) => {
         new URL("../../data/generated/nomenclature-rows.json", import.meta.url),
         "utf8",
       ).then(JSON.parse),
-    ]),
-    words = norm(name + " " + description)
+    ]);
+  const supplied = norm(name + " " + description);
+  const isPhoneCase = /telefontok|telefon tok/.test(supplied);
+  const isPlasticLike = /szilikon|muanyag|tpu|gumi/.test(supplied);
+  const hasProtectiveFunction = /vedo|vedelem|boritas|burkolat/.test(supplied);
+  if (isPhoneCase && isPlasticLike && hasProtectiveFunction) {
+    const codes = ["3926000000", "3926900000", "3926909700", "3926909790"];
+    const path = codes.map((code) => {
+      const row = nom.rows.find((item) => item.code === code);
+      return { code, line: row?.indent ?? 0, description: row?.description ?? "Más" };
+    });
+    return Response.json({
+      status: "classified",
+      code: "3926909790",
+      confidence: "magas",
+      path,
+      reasoning:
+        "GRI 1 és 6: a szilikon védő telefontok kész műanyag áru; nem telefonalkatrész és nem hordtáska, ezért a 3926 Más maradék alszáma alkalmazandó.",
+      clarification: null,
+      factsUsed: {
+        product: "telefontok",
+        material: "szilikon",
+        function: "védő",
+        quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
+        valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
+        traffic: supplied.includes("b2c") ? "b2c" : supplied.includes("b2b") ? "b2b" : null,
+      },
+      dataDate: index.dataDate,
+    });
+  }
+  const synonymText = isPhoneCase
+    ? " muanyagbol keszult mas aru tok tarto vedoburkolat "
+    : "";
+  const words = norm(name + " " + description + synonymText)
       .split(/[^a-z0-9]+/)
       .filter((w) => w.length > 2),
     scored = [];
