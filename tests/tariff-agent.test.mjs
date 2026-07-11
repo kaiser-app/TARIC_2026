@@ -1,5 +1,24 @@
 import agent from "../netlify/functions/tariff-agent.mjs";
-const response = await agent(new Request("http://local/api/tariff-agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "szamáröszvér", description: "élő állat" }) }));
+const response = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "szamáröszvér", description: "élő állat" })
+}));
 const result = await response.json();
 if (result.code !== "0101900000") throw new Error(`Várt 0101900000, kapott: ${result.code}`);
 console.log("OK szamáröszvér → 0101900000");
+
+const phoneCaseResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    name: "telefontok",
+    description: "szilikon telefontok védő funkció 1 db, 5000 Ft, b2c forgalom"
+  })
+}));
+const phoneCase = await phoneCaseResponse.json();
+if (phoneCase.code !== "3926909790")
+  throw new Error(`Várt 3926909790, kapott: ${phoneCase.code}`);
+if (phoneCase.status === "clarification")
+  throw new Error("A rendszer már megadott anyagra vagy funkcióra kérdezett vissza.");
+console.log("OK szilikon védő telefontok → 3926909790");
