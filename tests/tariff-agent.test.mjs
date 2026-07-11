@@ -22,3 +22,18 @@ if (phoneCase.code !== "3926909790")
 if (phoneCase.status === "clarification")
   throw new Error("A rendszer már megadott anyagra vagy funkcióra kérdezett vissza.");
 console.log("OK szilikon védő telefontok → 3926909790");
+
+const knifeResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    name: "vadászkés",
+    description: "szarvasbőr védőtokkal, 5 mm vastag rozsdamentes acélból, csont berakásos nyéllel, nyúlásra vadászat, 1 db, 50 000 Ft"
+  })
+}));
+const knife = await knifeResponse.json();
+if (knife.code !== "8211920000")
+  throw new Error(`Várt 8211920000, kapott: ${knife.code}`);
+if (knife.status === "clarification")
+  throw new Error("A rendszer a már megadott vadászati funkcióra vagy anyagra kérdezett.");
+console.log("OK rögzített pengéjű vadászkés → 8211920000");
