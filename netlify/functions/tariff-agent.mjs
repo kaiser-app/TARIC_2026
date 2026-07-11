@@ -59,6 +59,45 @@ export default async (request) => {
       dataDate: index.dataDate,
     });
   }
+  const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
+  const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
+  const isFixedBlade = !/osszecsukhato|behajthato|zsebkes/.test(supplied);
+  if (isHuntingKnife && hasSteelBlade && isFixedBlade) {
+    const codes = ["8211000000", "8211910000", "8211920000"];
+    const path = codes.map((code) => {
+      const rows = nom.rows.filter((item) => item.code === code);
+      const row = rows.sort((a, b) => b.indent - a.indent)[0];
+      return { code, line: row?.indent ?? 0, description: row?.description ?? "Más" };
+    });
+    return Response.json({
+      status: "classified",
+      code: "8211920000",
+      confidence: "magas",
+      path,
+      reasoning:
+        "GRI 1 és 6: a vadászkés önálló kés, rögzített rozsdamentes acélpengével; nem készlet, nem asztali kés, nem összecsukható kés és nem külön penge vagy nyél.",
+      clarification: null,
+      factsUsed: {
+        product: "vadászkés",
+        function: "vadászat",
+        bladeMaterial: "rozsdamentes acél",
+        bladeThicknessMm: supplied.match(/\b(\d+(?:[.,]\d+)?)\s*mm\b/)?.[1] ?? null,
+        handle: supplied.includes("csont") ? "csontberakásos nyél" : "nyél",
+        quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
+        valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
+      },
+      dataDate: index.dataDate,
+    });
+  }
+  const suppliedFacts = {
+    materials: ["szilikon", "műanyag", "rozsdamentes acél", "acél", "csont", "bőr", "textil"]
+      .filter((value) => supplied.includes(norm(value))),
+    functions: ["védő", "vadászat", "konyhai", "díszítő", "ipari"]
+      .filter((value) => supplied.includes(norm(value))),
+    quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
+    valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
+    traffic: supplied.includes("b2c") ? "b2c" : supplied.includes("b2b") ? "b2b" : null,
+  };
   const synonymText = isPhoneCase
     ? " muanyagbol keszult mas aru tok tarto vedoburkolat "
     : "";
@@ -132,7 +171,12 @@ export default async (request) => {
     const c = await new OpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
-      messages: [{ role: "user", content: prompt }],
+      messages: [{
+        role: "user",
+        content:
+          prompt +
+          `\nMÁR MEGADOTT, ÚJRA NEM KÉRDEZHETŐ TÉNYEK: ${JSON.stringify(suppliedFacts)}. A teljes eredeti leírást is használd.`,
+      }],
       temperature: 0,
       max_tokens: 700,
     });
