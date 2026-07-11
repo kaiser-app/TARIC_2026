@@ -1,15 +1,17 @@
 {
   "name": "taric-2026",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:data": "node scripts/import-taric.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "fast-xml-parser": "^5.2.5",
     "vite": "^6.0.5",
     "typescript": "~5.7.2",
     "react": "^18.3.1",
