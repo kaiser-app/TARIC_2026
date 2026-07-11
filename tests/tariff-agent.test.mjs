@@ -36,4 +36,6 @@ if (knife.code !== "8211920000")
   throw new Error(`Várt 8211920000, kapott: ${knife.code}`);
 if (knife.status === "clarification")
   throw new Error("A rendszer a már megadott vadászati funkcióra vagy anyagra kérdezett.");
+if (knife.path?.[1]?.description !== "Más")
+  throw new Error(`A köztes egyvonalas szülősor hibás: ${knife.path?.[1]?.description}`);
 console.log("OK rögzített pengéjű vadászkés → 8211920000");
