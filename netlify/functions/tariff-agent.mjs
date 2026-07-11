@@ -66,7 +66,7 @@ export default async (request) => {
     const codes = ["8211000000", "8211910000", "8211920000"];
     const path = codes.map((code) => {
       const rows = nom.rows.filter((item) => item.code === code);
-      const row = rows.sort((a, b) => b.indent - a.indent)[0];
+      const row = rows.sort((a, b) => a.indent - b.indent)[0];
       return { code, line: row?.indent ?? 0, description: row?.description ?? "Más" };
     });
     return Response.json({
