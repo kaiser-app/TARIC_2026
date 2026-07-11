@@ -1,16 +1,22 @@
 <!doctype html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="TARIC Tarifáló Ügynök – ellenőrizhető vámtarifa-támogatás." />
-  <title>TARIC Tarifáló Ügynök</title>
-  <style>
-    body{margin:0;background:#f3f5f2;color:#17211b;font-family:Arial,sans-serif}.fallback{max-width:1120px;margin:auto;padding:28px}.fallback nav{font-weight:800;color:#184d37;padding:16px 0}.fallback section{padding:70px 0 35px}.fallback small{color:#2f7658;font-weight:800;letter-spacing:.12em}.fallback h1{font:700 clamp(44px,7vw,78px)/1 Georgia,serif;margin:18px 0}.fallback p{font-size:19px;color:#526058;max-width:700px;line-height:1.5}.fallback .card{background:white;border:1px solid #dde4df;border-radius:18px;padding:25px;margin-top:25px}
-  </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="TARIC Tarifáló Ügynök"><title>TARIC Tarifáló Ügynök</title>
+<style>
+:root{font-family:Inter,Arial,sans-serif;color:#17211b;background:#f3f5f2}*{box-sizing:border-box}body{margin:0}main{max-width:1180px;margin:auto;padding:0 28px}nav{height:78px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:800;color:#184d37}.lang button{border:0;border-radius:99px;padding:8px 13px;font-weight:800}.hero{display:grid;grid-template-columns:1.45fr .75fr;gap:30px;align-items:end;padding:65px 0 42px}.eyebrow{color:#2f7658;font-size:12px;font-weight:800;letter-spacing:.15em}.hero h1{font:700 clamp(45px,6vw,76px)/.98 Georgia,serif;margin:16px 0}.lead{font-size:20px;line-height:1.5;color:#526058}.code{background:#153c2c;color:white;padding:27px;border-radius:18px}.code strong{display:block;font-size:23px;letter-spacing:.08em;margin:12px 0}.panel,.card{background:white;border:1px solid #dde4df;border-radius:18px;padding:26px}.panel{box-shadow:0 18px 55px #25382c10}form{display:grid;grid-template-columns:.65fr 1.35fr auto;gap:18px;align-items:end}label{font-size:13px;font-weight:750}input,textarea{display:block;width:100%;margin-top:9px;border:1px solid #cfd8d2;border-radius:10px;padding:13px;font:inherit}.primary{height:46px;border:0;border-radius:10px;padding:0 20px;background:#b85c37;color:white;font-weight:800}.grid{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:16px;margin:22px 0}.notice{background:#eaf3ed;color:#1e6645}.card h2{font-size:16px}.card p{font-size:14px;line-height:1.55;color:#617067}.card a{display:block;color:#1e6645;font-weight:750;margin:9px 0;text-decoration:none}footer{padding:30px 0 50px;color:#738078;font-size:12px}@media(max-width:850px){.hero,form,.grid{grid-template-columns:1fr}main{padding:0 18px}}
+</style>
 </head>
-<body>
-  <div id="root"><main class="fallback"><nav>TARIC 2026</nav><section><small>ELLENŐRIZHETŐ TARIFÁLÁSI TÁMOGATÁS</small><h1>TARIC Tarifáló Ügynök</h1><p>Áruosztályozás és vámteher-előkészítés hiteles forrásokra építve.</p><div class="card">Az alkalmazás betöltése folyamatban…</div></section></main></div>
-  <script type="module" src="/src/main.jsx"></script>
-</body>
-</html>
+<body><main>
+<nav><div class="brand">◈ TARIC 2026</div><div class="lang"><button>HU</button></div></nav>
+<section class="hero"><div><p class="eyebrow">ELLENŐRIZHETŐ TARIFÁLÁSI TÁMOGATÁS</p><h1>TARIC Tarifáló Ügynök</h1><p class="lead">Áruosztályozás és vámteher-előkészítés hiteles forrásokra építve.</p></div><div class="code"><span>TARIC-kód</span><strong id="display">–––– –– –– ––</strong><small>HS / KN / TARIC</small></div></section>
+<section class="panel"><form id="search"><label>TARIC-kód<input id="code" inputmode="numeric" maxlength="10" placeholder="0000000000"></label><label>Áru megnevezése vagy leírása<textarea id="query" rows="4" placeholder="pl. pamut férfi póló"></textarea></label><button class="primary">Ellenőrzés indítása</button></form></section>
+<section class="grid"><article class="card notice"><h2>Hiteles adatbetöltés folyamatban</h2><p>A 2026. július 11-i NAV/OpenKKK adatcsomag feldolgozása megkezdődött. Ellenőrizetlen vámtételt az alkalmazás nem közöl.</p></article><article class="card"><h2>Hivatalos források</h2><a href="https://ec.europa.eu/taxation_customs/dds2/taric/taric_consultation.jsp?Lang=hu" target="_blank">EU TARIC ↗</a><a href="https://kkk.nav.gov.hu/eles/1/taricweb/" target="_blank">NAV TARIC Web ↗</a></article><article class="card"><h2>Rendszerállapot</h2><p id="status">Kapcsolat ellenőrzése…</p></article></section>
+<footer>Információs és döntéstámogató rendszer – a hivatalos hatósági ellenőrzést nem helyettesíti.</footer>
+</main>
+<script>
+const code=document.getElementById("code"),display=document.getElementById("display");
+code.addEventListener("input",()=>{code.value=code.value.replace(/\D/g,"").slice(0,10);const c=code.value.padEnd(10,"–");display.textContent=c.slice(0,4)+" "+c.slice(4,6)+" "+c.slice(6,8)+" "+c.slice(8,10)});
+document.getElementById("search").addEventListener("submit",e=>{e.preventDefault();document.getElementById("status").textContent="A keresőadatbázis feltöltése folyamatban; ellenőrizetlen eredmény nem jeleníthető meg."});
+fetch("/api/health").then(r=>r.json()).then(()=>document.getElementById("status").textContent="A Netlify API elérhető.").catch(()=>document.getElementById("status").textContent="Az API pillanatnyilag nem elérhető.");
+</script></body></html>
