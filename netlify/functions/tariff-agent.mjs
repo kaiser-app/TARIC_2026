@@ -335,16 +335,32 @@ export default async (request) => {
         productLine: r.productLine,
         description: r.description,
       }));
-  if (!hierarchy.length)
+  if (!hierarchy.length) {
+    const knownMaterials = classificationSession.facts.materials;
+    const knownFunction = classificationSession.facts.inferredFacts?.functions?.length;
+    const mixedMaterial = knownMaterials.length > 1;
     return respond({
       status: "clarification",
-      clarification: classificationSession.facts.inferredFacts?.functions?.length
-        ? "A megnevezésből a rendeltetést, a leírásból az anyagot is felismertem. Melyik további jellemző választja szét a megjelenített tarifális ágakat?"
-        : classificationSession.facts.materials.length
-          ? "Az anyagot már felismertem. Mi az áru pontos rendeltetése vagy termékfajtája, amely a tarifális ágat eldönti?"
-        : "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
+      clarification: mixedMaterial
+        ? "Több anyagot is felismertem. Melyik anyagból készült a termék fő tartószerkezete vagy tartályrésze, amely az áru lényeges jellegét adja?"
+        : knownFunction
+          ? "A megnevezésből a rendeltetést, a leírásból az anyagot is felismertem. Melyik további jellemző választja szét a megjelenített tarifális ágakat?"
+          : knownMaterials.length
+            ? "Az anyagot már felismertem. Mi az áru pontos rendeltetése vagy termékfajtája, amely a tarifális ágat eldönti?"
+            : "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
+      clarificationOptions: mixedMaterial
+        ? knownMaterials.map((material) => ({
+            id: `essential_${material}`,
+            label: ({ glass: "Üveg", concrete: "Beton", steel: "Acél", plastic: "Műanyag", wood: "Fa", leather: "Bőr", textile: "Textil" })[material] || material,
+            appendText: `a termék lényeges jellegét adó fő tartószerkezet vagy tartály anyaga: ${material}`,
+          }))
+        : undefined,
+      reasoning: mixedMaterial
+        ? "A rendeltetés már ismert; a GRI 3 b) alkalmazásához az összetett áru lényeges jellegét adó anyagot kell meghatározni."
+        : undefined,
       factsUsed: { extracted: classificationSession.facts },
     });
+  }
   const prompt = `EU vámtarifa-szakértő vagy. GRI 1–6 szerint lépcsőzetesen osztályozz: árucsoport → 4 jegy → HS6 → KN8 → TARIC10. A line mező a nómenklatúra vonalszintje: az azonos kódú, eltérő line sorok külön hierarchiaszintek. TILOS fő-, gyűjtő- vagy tovább bontható kódot véglegesnek választani. Ha a következő vonalszinthez anyag, funkció, fajta, feldolgozottság vagy kiszerelés hiányzik, pontosító kérdést adj, ne találgass. Kizárólag a megadott 2026-07-11-i NAV-hierarchiából válassz. JSON-only: classified esetén {"status":"classified","code":"10 számjegy","confidence":"magas|közepes|alacsony","path":[{"code":"...","line":0,"description":"..."}],"reasoning":"GRI-indoklás","clarification":null}; kérdés esetén {"status":"clarification","code":null,"confidence":"alacsony","path":[],"reasoning":"mi hiányzik","clarification":"egy kérdés"}. Termék: ${name}. Leírás: ${description || "nincs"}. Hierarchia: ${JSON.stringify(hierarchy)}`;
   const atomic = norm(name);
   const root = hierarchy.find(
