@@ -39,3 +39,15 @@ if (knife.status === "clarification")
 if (knife.path?.[1]?.description !== "Más")
   throw new Error(`A köztes egyvonalas szülősor hibás: ${knife.path?.[1]?.description}`);
 console.log("OK rögzített pengéjű vadászkés → 8211920000");
+
+const tshirtResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "pamut póló", description: "pamut póló" })
+}));
+const tshirt = await tshirtResponse.json();
+if (tshirt.code !== "6109100010")
+  throw new Error(`Várt 6109100010, kapott: ${tshirt.code}`);
+if (tshirt.status === "clarification")
+  throw new Error("A rendszer a pamut póló már megadott anyagára kérdezett.");
+console.log("OK pamut póló → 6109100010");
