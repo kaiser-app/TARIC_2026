@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/prepare-render-data.mjs && vite build",
     "preview": "vite preview",
     "start": "node server.mjs",
     "import:data": "node scripts/import-taric.mjs"
