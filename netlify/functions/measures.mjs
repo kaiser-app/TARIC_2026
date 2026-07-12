@@ -35,8 +35,7 @@ export default async request=>{
       const[d,area,type,additional,certificate,description,start,end]=item;
       if(direction!=="all"&&!d.startsWith(direction))continue;
       if(!areaApplies(area))continue;
-      if(type==="107"&&!lowValueEligible)continue;
-      found.push({direction:d,area,type,additionalCode:additional||null,certificate:certificate||null,description:description||null,start,end:end||null,sourceCode});
+      found.push({direction:d,area,type,additionalCode:additional||null,certificate:certificate||null,description:description||null,start,end:end||null,sourceCode,applicable:type!=="107"||lowValueEligible,applicabilityReason:type==="107"&&!lowValueEligible?"Nem alkalmazható: a küldemény nem felel meg a legfeljebb 150 EUR kisértékűségi feltételnek.":null});
     }
   }
   for(const[sourceCode,items]of Object.entries(data.ratesByCode||{})){
@@ -44,12 +43,14 @@ export default async request=>{
     for(const item of items){
       const[area,type,additional,certificate,conditionAmount,conditionCurrency,conditionUnit,orderNumber,expression,rate,currency,unit,legal,start,end]=item;
       if(!areaApplies(area))continue;
-      if(type==="107"&&!lowValueEligible)continue;
-      found.push({direction:"import_rate",area,type,additionalCode:additional||null,certificate:certificate||null,description:null,start,end:end||null,sourceCode,rate:rate||null,expression:expression||null,currency:currency||null,unit:unit||null,legal:legal||null,orderNumber:orderNumber||null,conditionAmount:conditionAmount||null,conditionCurrency:conditionCurrency||null,conditionUnit:conditionUnit||null});
+      found.push({direction:"import_rate",area,type,additionalCode:additional||null,certificate:certificate||null,description:null,start,end:end||null,sourceCode,isRate:true,rate:rate||null,expression:expression||null,currency:currency||null,unit:unit||null,legal:legal||null,orderNumber:orderNumber||null,conditionAmount:conditionAmount||null,conditionCurrency:conditionCurrency||null,conditionUnit:conditionUnit||null,applicable:type!=="107"||lowValueEligible,applicabilityReason:type==="107"&&!lowValueEligible?"Nem alkalmazható: a küldemény nem felel meg a legfeljebb 150 EUR kisértékűségi feltételnek.":null});
     }
   }
+  // A more specific commodity-code rate overrides a chapter/heading-level rate
+  // for the same measure and territorial scope.
+  const scopedFound=found.filter(item=>!item.isRate||item.sourceCode.length===Math.max(...found.filter(candidate=>candidate.isRate&&candidate.type===item.type&&candidate.area===item.area&&candidate.additionalCode===item.additionalCode).map(candidate=>candidate.sourceCode.length)));
   const unique=new Map();
-  for(const item of found){
+  for(const item of scopedFound){
     const key=JSON.stringify([item.direction,item.area,item.type,item.additionalCode,item.certificate,item.description,item.start,item.end,item.rate,item.expression,item.currency,item.unit,item.legal]);
     const previous=unique.get(key);
     if(previous)previous.sourceCodes.push(item.sourceCode);
@@ -61,8 +62,9 @@ export default async request=>{
     // EV condition rows and AIS rate rows describe the same legal measure.
     // Group them by measure type and territorial scope; supplementary codes are
     // alternatives/details inside that measure, not separate measures.
-    const key=JSON.stringify([item.type,item.area]);
-    const group=grouped.get(key)??{direction:item.direction.startsWith("import")?"import":item.direction,type:item.type,area:item.area,additionalCode:item.additionalCode,label:typeNames[item.type]||`TARIC-intézkedés ${item.type}`,validFrom:item.start||null,validTo:item.end||null,additionalCodes:[],rates:[],conditions:[]};
+    const key=JSON.stringify([item.type,item.area,item.type==="AAF"?item.additionalCode:null]);
+    const group=grouped.get(key)??{direction:item.direction.startsWith("import")?"import":item.direction,type:item.type,area:item.area,additionalCode:item.additionalCode,label:typeNames[item.type]||`TARIC-intézkedés ${item.type}`,validFrom:item.start||null,validTo:item.end||null,applicable:item.applicable!==false,applicabilityReason:item.applicabilityReason||null,additionalCodes:[],rates:[],conditions:[]};
+    if(item.applicable===false){group.applicable=false;group.applicabilityReason=item.applicabilityReason;}
     if(item.additionalCode)group.additionalCodes.push(item.additionalCode);
     if(item.rate!==undefined&&item.rate!==null)group.rates.push({value:item.rate,expression:item.expression,currency:item.currency,unit:item.unit,legal:item.legal,orderNumber:item.orderNumber});
     if(item.description||item.certificate)group.conditions.push({certificate:item.certificate||null,description:item.description||null});
