@@ -31,6 +31,7 @@ jobs:
     timeout-minutes: 45
     env:
       OPENKKK_FOLDER_URL: "https://openkkk.nav.gov.hu/Megosztott%20dokumentumok/Forms/AllItems.aspx?RootFolder=%2FMegosztott%20dokumentumok%2FT%C3%B6rzsek%2FT%C3%B6rzsek%20EV%20kit%C3%B6lt%C3%A9shez%2F2026%5F3%5Fnegyed%C3%A9v%2FEV%5Ft%C3%B6rzsadatok&FolderCTID=0x012000A74CCEA4C7223A438B470FB97E909D83&View=%7BC26B9F09%2DFC44%2D4213%2DA9A4%2D3F54E927FF75%7D"
+      AIS_FOLDER_URL: "https://openkkk.nav.gov.hu/Megosztott%20dokumentumok/Forms/AllItems.aspx?RootFolder=%2FMegosztott%20dokumentumok%2FT%C3%B6rzsek%2FT%C3%B6rzsek%20EV%20kit%C3%B6lt%C3%A9shez%2F2026%5F3%5Fnegyed%C3%A9v%2FAIS%5Ft%C3%B6rzsadatok&FolderCTID=0x012000A74CCEA4C7223A438B470FB97E909D83&View=%7BC26B9F09%2DFC44%2D4213%2DA9A4%2D3F54E927FF75%7D"
     steps:
       - uses: actions/checkout@v4
       - name: Budapest 07:15 schedule gate
@@ -54,7 +55,9 @@ jobs:
           else
             node scripts/download-latest-openkkk.mjs "$OPENKKK_FOLDER_URL" /tmp/taric-daily.zip
           fi
+          node scripts/download-latest-openkkk.mjs "$AIS_FOLDER_URL" /tmp/ais-daily.zip
           unzip -t /tmp/taric-daily.zip
+          unzip -t /tmp/ais-daily.zip
       - name: Resolve data date
         if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
         run: |
@@ -67,6 +70,7 @@ jobs:
           rm -rf /tmp/taric-source
           mkdir -p /tmp/taric-source
           unzip -q /tmp/taric-daily.zip -d /tmp/taric-source
+          unzip -q /tmp/ais-daily.zip AIS_vamtetelek.data.xml -d /tmp/taric-source
           for f in KN_10.xml KN_kieg_kod.xml KN_mertekegys.xml import_intezkedes_EU.xml import_intezkedes_HU.xml export_intezkedesek.xml; do test -s "/tmp/taric-source/$f" || exit 1; done
       - name: Build SQLite snapshot and application indexes
         if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
