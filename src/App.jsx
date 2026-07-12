@@ -13,7 +13,7 @@ export default function App() {
   const [lang, setLang] = useState("hu"), [code, setCode] = useState(""), [product, setProduct] = useState(""), [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false), [error, setError] = useState(""), [result, setResult] = useState(null), [measures, setMeasures] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
-  const [options, setOptions] = useState({ traffic: "b2b", date: new Date().toISOString().slice(0, 10), value: "100000", quantity: "1", unit: "db", origin: "", direction: "import", dispatch: "", destination: "Magyarország", ecb: "354.13", lineCount: "1" });
+  const [options, setOptions] = useState({ traffic: "b2b", date: new Date().toISOString().slice(0, 10), value: "100000", quantity: "1", unit: "db", additions: "0", origin: "", direction: "import", dispatch: "", destination: "Magyarország", ecb: "354.13", lineCount: "1" });
   const [health, setHealth] = useState(null);
   useEffect(() => { getJson("/api/health").then(setHealth).catch(() => setHealth(null)); }, []);
   const t = useMemo(() => lang === "hu" ? {
@@ -22,7 +22,7 @@ export default function App() {
     eye: "Verifiable classification support", title: "TARIC Classification Agent", lead: "Commodity classification and duty preparation based on authoritative sources.", code: "TARIC code", product: "Product name or description", placeholder: "e.g. 100% cotton knitted T-shirt", search: "Start verification", status: "NAV data connection active", text: "Classification uses the NAV/OpenKKK nomenclature and measures snapshot dated 11 July 2026.", sources: "Official sources", report: "Data status", result: "Classification result", clarification: "Clarification required", measures: "Related measures", none: "No measure to display."
   }, [lang]);
 
-  const optionText = () => `forgalom: ${options.traffic.toUpperCase()}, vámérték: ${options.value} Ft, mennyiség: ${options.quantity} ${options.unit}, származás: ${options.origin || "harmadik ország / nincs megadva"}, irány: ${options.direction}, dátum: ${options.date}`;
+  const optionText = () => `forgalom: ${options.traffic.toUpperCase()}, vámérték: ${Number(options.value)||100000} Ft, mennyiség: ${Number(options.quantity)||1} ${options.unit||"db"}, származás: ${options.origin || "harmadik ország / nincs megadva"}, irány: ${options.direction}, dátum: ${options.date}`;
   const runClassification = async (inputText = query) => {
     const normalizedInput = [product.trim(), inputText.trim(), optionText()].filter(Boolean).join(", ");
     setLoading(true); setError(""); setResult(null); setMeasures(null);
@@ -33,7 +33,7 @@ export default function App() {
       if (!classified.code) setCode("");
       if (classified.code) {
         setCode(clean(classified.code));
-        const params=new URLSearchParams({code:clean(classified.code),direction:options.direction==="mindkettő"?"all":options.direction,origin:options.origin.trim().toUpperCase(),valueHuf:options.value,ecbRate:options.ecb,traffic:options.traffic});
+        const params=new URLSearchParams({code:clean(classified.code),direction:options.direction==="mindkettő"?"all":options.direction,origin:options.origin.trim().toUpperCase(),valueHuf:String(Number(options.value)||100000),ecbRate:options.ecb||"354.13",traffic:options.traffic});
         setMeasures(await getJson(`/api/measures?${params}`));
       }
     } catch (err) { setError(err.message || "A lekérdezés sikertelen."); }
@@ -45,6 +45,25 @@ export default function App() {
     setQuery(next);
     runClassification(next);
   };
+  const calculation = useMemo(() => {
+    if (!measures?.groups?.length) return null;
+    const invoiceValue = Number(options.value) || 100000;
+    const additions = Number(options.additions) || 0;
+    const customsBase = Math.round(invoiceValue + additions);
+    const quantity = Number(options.quantity) || 1;
+    const lineCount = Math.max(1, Number(options.lineCount) || 1);
+    const ecb = Number(String(options.ecb || "354.13").replace(",", ".")) || 354.13;
+    const rateOf = (group) => Number(group?.rates?.find((rate) => rate.value !== "")?.value || 0);
+    const lowValue = measures.groups.find((group) => group.type === "107" && group.applicable !== false);
+    const thirdCountry = measures.groups.find((group) => group.type === "103");
+    const dutyRate = rateOf(thirdCountry);
+    const duty = lowValue ? Math.round(3 * ecb * lineCount) : Math.round(customsBase * dutyRate / 100);
+    const vatGroup = measures.groups.find((group) => group.type === "AAF" && group.additionalCodes?.includes("X6XX"));
+    const vatRate = rateOf(vatGroup) || 27;
+    const vatBase = customsBase + duty;
+    const vat = Math.round(vatBase * vatRate / 100);
+    return { invoiceValue, additions, customsBase, quantity, lineCount, ecb, dutyRate, duty, vatRate, vatBase, vat, total: duty + vat, lowValue: !!lowValue };
+  }, [measures, options]);
 
   return <main>
     <nav><div className="brand"><ShieldCheck />TARIC 2026</div><div className="language"><button className={lang === "hu" ? "active" : ""} onClick={() => setLang("hu")}>HU</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div></nav>
@@ -59,6 +78,7 @@ export default function App() {
         <label>Vámérték (Ft)<input inputMode="numeric" value={options.value} onChange={(e) => setOptions({ ...options, value: e.target.value.replace(/\D/g, "") })} /></label>
         <label>Mennyiség<input inputMode="decimal" value={options.quantity} onChange={(e) => setOptions({ ...options, quantity: e.target.value })} /></label>
         <label>Egység<input value={options.unit} onChange={(e) => setOptions({ ...options, unit: e.target.value })} /></label>
+        <label>Vámértéknövelő tényezők (Ft)<input inputMode="numeric" value={options.additions} onChange={(e) => setOptions({ ...options, additions: e.target.value.replace(/[^\d-]/g, "") })} /></label>
         <label>Származási ország<input value={options.origin} onChange={(e) => setOptions({ ...options, origin: e.target.value })} placeholder="üresen: 3. országos" /></label>
         <label>Irány<select value={options.direction} onChange={(e) => setOptions({ ...options, direction: e.target.value })}><option value="import">Import</option><option value="export">Export</option><option value="mindkettő">Import és export</option></select></label>
         <label>Indító ország<input value={options.dispatch} onChange={(e) => setOptions({ ...options, dispatch: e.target.value })} /></label>
@@ -72,7 +92,7 @@ export default function App() {
     <section className="grid"><article className="notice"><ShieldCheck /><div><h2>{t.status}</h2><p>{t.text}</p><p><b>Adatnap: {health?.dataVersion || "betöltés…"}</b></p></div></article><article><h2>{t.sources}</h2><div className="links">{links.map((x) => <a href={x.href} target="_blank" rel="noreferrer" key={x.href}>{x.label}<ExternalLink size={15} /></a>)}</div></article><article><FileText /><h2>{t.report}</h2><p>{Number(health?.nomenclatureRows || 0).toLocaleString("hu-HU")} nómenklatúra-sor · {Number(health?.measures || 0).toLocaleString("hu-HU")} intézkedés · 92 AIS ellenőrzési szabály</p></article></section>
     {error && <section className="result error"><AlertCircle /><div><h2>Hiba</h2><p>{error}</p></div></section>}
     {result && <section className={`result ${result.status === "clarification" ? "needs-input" : ""}`}><h2>{result.status === "clarification" ? t.clarification : t.result}</h2>{result.code && <div className="result-code">{grouped(result.code)} <span>{result.confidence}</span></div>}{result.clarification && <p className="question">{result.clarification}</p>}{!!result.clarificationOptions?.length && <div className="clarification-options">{result.clarificationOptions.map((option) => <button type="button" key={option.id} disabled={loading} onClick={() => chooseClarification(option)}>{option.label}</button>)}</div>}{result.reasoning && <p>{result.reasoning}</p>}{!!result.path?.length && <ol className="path">{result.path.map((row, i) => <li key={`${row.code}-${row.line}-${i}`} style={{ marginLeft: `${Math.max(0, Number(row.line || 0)) * 18}px` }}><code>{grouped(row.code)}</code><span>{row.description}</span></li>)}</ol>}{result.dataDate && <small>Adatnap: {result.dataDate}</small>}</section>}
-    {measures && <section className="result"><h2>{t.measures} <span className="count">{measures.count}</span></h2>{measures.valueCheck && <p className="measure-context">Származás: <b>{measures.origin||"nincs megadva"}</b> · Vámérték: <b>{measures.valueCheck.valueHuf?.toLocaleString("hu-HU")||"—"} Ft</b> ({measures.valueCheck.valueEur??"—"} EUR) · Kisértékű: <b>{measures.valueCheck.lowValueEligible?"igen":"nem"}</b></p>}{measures.groups?.length ? <div className="measure-groups">{measures.groups.map((group,i)=><details className="measure-group" key={`${group.type}-${group.area}-${group.additionalCode}-${i}`}><summary><b>{group.type}</b><span>{group.label}</span><em>{group.area||"Erga omnes"}</em>{group.conditionCount>0&&<small>{group.conditionCount} feltétel</small>}</summary>{group.conditions.length>0?<div className="condition-list">{group.conditions.map((condition,j)=><div key={`${condition.certificate}-${j}`}><code>{condition.certificate||"—"}</code><span>{condition.description||"Feltételhez kötött intézkedés"}</span></div>)}</div>:<p>Nincs külön igazolási feltétel.</p>}</details>)}</div> : <p>{t.none}</p>}{measures.rawConditionCount>measures.count&&<small>{measures.rawConditionCount} technikai feltételsor {measures.count} intézkedéscsoportba rendezve.</small>}</section>}
+    {measures && <section className="result"><h2>{t.measures} <span className="count">{measures.count}</span></h2>{measures.valueCheck && <p className="measure-context">Származás: <b>{measures.origin||"nincs megadva"}</b> · Vámérték: <b>{measures.valueCheck.valueHuf?.toLocaleString("hu-HU")||"—"} Ft</b> ({measures.valueCheck.valueEur??"—"} EUR) · Kisértékű: <b>{measures.valueCheck.lowValueEligible?"igen":"nem"}</b></p>}{calculation&&<details className="calculation"><summary>Közteher-kalkuláció</summary><div className="calculation-body"><p className="calculation-note">{calculation.lowValue?"A 107-es kisértékű vám alkalmazásával számolva.":`Külön preferenciális adat hiányában a 103-as harmadik országos vámtétellel (${calculation.dutyRate}%) számolva.`} Hiányzó adatok alapértékei: 100 000 Ft számlaérték, 1 db, 0 Ft vámértéknövelő tényező.</p><dl><div><dt>Számlaérték</dt><dd>{calculation.invoiceValue.toLocaleString("hu-HU")} Ft</dd></div><div><dt>Vámértéknövelő tényező</dt><dd>{calculation.additions.toLocaleString("hu-HU")} Ft</dd></div><div><dt>Vámalap</dt><dd>{calculation.customsBase.toLocaleString("hu-HU")} Ft</dd></div><div><dt>Vám</dt><dd>{calculation.duty.toLocaleString("hu-HU")} Ft</dd></div><div><dt>Áfaalap</dt><dd>{calculation.vatBase.toLocaleString("hu-HU")} Ft</dd></div><div><dt>ÁFA ({calculation.vatRate}%)</dt><dd>{calculation.vat.toLocaleString("hu-HU")} Ft</dd></div><div className="calculation-total"><dt>Összes közteher</dt><dd>{calculation.total.toLocaleString("hu-HU")} Ft</dd></div></dl></div></details>}{measures.groups?.length ? <div className="measure-groups">{measures.groups.map((group,i)=><details className="measure-group" key={`${group.type}-${group.area}-${group.additionalCode}-${i}`}><summary><b>{group.type}</b><span>{group.label}</span><em>{group.area||"Erga omnes"}</em>{group.conditionCount>0&&<small>{group.conditionCount} feltétel</small>}</summary>{group.conditions.length>0?<div className="condition-list">{group.conditions.map((condition,j)=><div key={`${condition.certificate}-${j}`}><code>{condition.certificate||"—"}</code><span>{condition.description||"Feltételhez kötött intézkedés"}</span></div>)}</div>:<p>Nincs külön igazolási feltétel.</p>}</details>)}</div> : <p>{t.none}</p>}{measures.rawConditionCount>measures.count&&<small>{measures.rawConditionCount} technikai feltételsor {measures.count} intézkedéscsoportba rendezve.</small>}</section>}
     <footer>Információs és döntéstámogató rendszer – a hivatalos hatósági ellenőrzést nem helyettesíti.</footer>
   </main>;
 }
