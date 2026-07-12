@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { beginClassification, finishClassification } from "./lib/classification-learning.mjs";
 const norm = (s) =>
     String(s || "")
       .toLocaleLowerCase("hu")
@@ -19,6 +20,8 @@ export default async (request) => {
       status: 400,
       headers,
     });
+  const classificationSession = beginClassification(name, description);
+  const respond = (payload, init) => Response.json(finishClassification(classificationSession.id, payload), init);
   const [index, nom] = await Promise.all([
       readFile(
         new URL("../../data/generated/taric-index.json", import.meta.url),
@@ -40,7 +43,7 @@ export default async (request) => {
       const row = nom.rows.find((item) => item.code === code);
       return { code, line: row?.indent ?? 0, description: row?.description ?? "Más" };
     });
-    return Response.json({
+    return respond({
       status: "classified",
       code: "3926909790",
       confidence: "magas",
@@ -68,7 +71,7 @@ export default async (request) => {
       const row = rows.sort((a, b) => a.indent - b.indent)[0];
       return { code, line: row?.indent ?? 0, description: row?.description ?? "" };
     });
-    return Response.json({
+    return respond({
       status: "classified",
       code: "6109100010",
       confidence: "magas",
@@ -83,10 +86,22 @@ export default async (request) => {
       dataDate: index.dataDate,
     });
   }
+  const isSword = classificationSession.facts.canonicalProduct === "sword";
+  if (isSword) {
+    const row = nom.rows.find((item) => item.code === "9307000000");
+    return respond({
+      status: "classified", code: "9307000000", confidence: "magas",
+      path: [{ code: "9307000000", line: row?.indent ?? 0, description: row?.description ?? "Kard, tőr, szurony, lándzsa és hasonló fegyver" }],
+      reasoning: "GRI 1: a megnevezés és a leírás együttes értelmezése alapján az áru kard vagy annak szinonimája; a 9307 vámtarifaszám ezt név szerint lefedi.",
+      clarification: null,
+      factsUsed: { product: classificationSession.facts.productTerms, type: "kard", material: classificationSession.facts.materials },
+      dataDate: index.dataDate, engine: "local-rules-v2",
+    });
+  }
   const isSamuraiSword = /szamurajkard|szamurajkes|katana/.test(compact) || /szamuraj\s+kard/.test(supplied);
   if (isSamuraiSword) {
     const row = nom.rows.find((item) => item.code === "9307000000");
-    return Response.json({
+    return respond({
       status: "classified", code: "9307000000", confidence: "magas",
       path: [{ code: "9307000000", line: row?.indent ?? 0, description: row?.description ?? "Kard, tőr, szurony, lándzsa és hasonló fegyver" }],
       reasoning: "GRI 1: a szamurájkard (katana) kard jellegű szálfegyver, amelyet a 9307 vámtarifaszám név szerint lefed.",
@@ -98,21 +113,21 @@ export default async (request) => {
   if(isFootwear&&hasLeatherUpper){
     const base={code:"6403000000",line:0,description:nom.rows.find(r=>r.code==="6403000000")?.description||"Lábbeli bőr felsőrésszel"};
     const leatherSole=/bor (kulso )?talp|bortalp/.test(supplied),rubberPlasticSole=/gumi|muanyag (kulso )?talp|gumitalp/.test(supplied);
-    if(!leatherSole&&!rubberPlasticSole)return Response.json({status:"clarification",code:null,confidence:"alacsony",path:[base],reasoning:"A bőr felsőrész a 6403 vámtarifaszámot meghatározza; a következő alszámot a külső talp anyaga választja szét.",clarification:"Milyen anyagból készült a lábbeli külső talpa?",clarificationOptions:[{id:"sole_rubber_plastic",label:"Gumi vagy műanyag",appendText:"külső talpa gumiból vagy műanyagból készült"},{id:"sole_leather",label:"Bőr",appendText:"külső talpa bőrből készült"}],factsUsed:{product:"bőr felsőrészű lábbeli",upperMaterial:"bőr"},dataDate:index.dataDate,engine:"local-rules-v1"});
+    if(!leatherSole&&!rubberPlasticSole)return respond({status:"clarification",code:null,confidence:"alacsony",path:[base],reasoning:"A bőr felsőrész a 6403 vámtarifaszámot meghatározza; a következő alszámot a külső talp anyaga választja szét.",clarification:"Milyen anyagból készült a lábbeli külső talpa?",clarificationOptions:[{id:"sole_rubber_plastic",label:"Gumi vagy műanyag",appendText:"külső talpa gumiból vagy műanyagból készült"},{id:"sole_leather",label:"Bőr",appendText:"külső talpa bőrből készült"}],factsUsed:{product:"bőr felsőrészű lábbeli",upperMaterial:"bőr"},dataDate:index.dataDate,engine:"local-rules-v1"});
     const metalKnown=/fem (vedo )?cipoor|fem labujjvedo|nincs fem|fem nelkul/.test(supplied),hasMetal=/fem (vedo )?cipoor|fem labujjvedo/.test(supplied)&&!/nincs|nelkul/.test(supplied);
-    if(!metalKnown)return Response.json({status:"clarification",code:null,confidence:"alacsony",path:[base],reasoning:"A 6403 ágon a beépített védő fém cipőorr önálló alszámot képez.",clarification:"Van a lábbeliben beépített védő fém cipőorr?",clarificationOptions:[{id:"toe_no",label:"Nincs",appendText:"nincs beépített védő fém cipőorra"},{id:"toe_yes",label:"Van",appendText:"beépített védő fém cipőorral készült"}],factsUsed:{upperMaterial:"bőr",soleMaterial:leatherSole?"bőr":"gumi vagy műanyag"},dataDate:index.dataDate,engine:"local-rules-v1"});
-    if(hasMetal)return Response.json({status:"classified",code:"6403400000",confidence:"magas",path:[base,{code:"6403400000",line:1,description:"Más lábbeli beépített védő fém cipőorral"}],reasoning:"GRI 1 és 6: bőr felsőrészű lábbeli beépített védő fém cipőorral.",clarification:null,dataDate:index.dataDate,engine:"local-rules-v1"});
+    if(!metalKnown)return respond({status:"clarification",code:null,confidence:"alacsony",path:[base],reasoning:"A 6403 ágon a beépített védő fém cipőorr önálló alszámot képez.",clarification:"Van a lábbeliben beépített védő fém cipőorr?",clarificationOptions:[{id:"toe_no",label:"Nincs",appendText:"nincs beépített védő fém cipőorra"},{id:"toe_yes",label:"Van",appendText:"beépített védő fém cipőorral készült"}],factsUsed:{upperMaterial:"bőr",soleMaterial:leatherSole?"bőr":"gumi vagy műanyag"},dataDate:index.dataDate,engine:"local-rules-v1"});
+    if(hasMetal)return respond({status:"classified",code:"6403400000",confidence:"magas",path:[base,{code:"6403400000",line:1,description:"Más lábbeli beépített védő fém cipőorral"}],reasoning:"GRI 1 és 6: bőr felsőrészű lábbeli beépített védő fém cipőorral.",clarification:null,dataDate:index.dataDate,engine:"local-rules-v1"});
     const ankleKnown=/bokat takar|bokat nem takar|bokanal alacsony/.test(supplied),coversAnkle=/bokat takar/.test(supplied)&&!/nem takar/.test(supplied);
-    if(!ankleKnown)return Response.json({status:"clarification",code:null,confidence:"alacsony",path:[base],reasoning:"Fém cipőorr hiányában a következő alszámot a bokát takaró kialakítás választja szét.",clarification:"A lábbeli takarja a bokát?",clarificationOptions:[{id:"ankle_yes",label:"Takarja a bokát",appendText:"a bokát takarja"},{id:"ankle_no",label:"Nem takarja a bokát",appendText:"a bokát nem takarja"}],factsUsed:{upperMaterial:"bőr",soleMaterial:leatherSole?"bőr":"gumi vagy műanyag",protectiveMetalToe:false},dataDate:index.dataDate,engine:"local-rules-v1"});
+    if(!ankleKnown)return respond({status:"clarification",code:null,confidence:"alacsony",path:[base],reasoning:"Fém cipőorr hiányában a következő alszámot a bokát takaró kialakítás választja szét.",clarification:"A lábbeli takarja a bokát?",clarificationOptions:[{id:"ankle_yes",label:"Takarja a bokát",appendText:"a bokát takarja"},{id:"ankle_no",label:"Nem takarja a bokát",appendText:"a bokát nem takarja"}],factsUsed:{upperMaterial:"bőr",soleMaterial:leatherSole?"bőr":"gumi vagy műanyag",protectiveMetalToe:false},dataDate:index.dataDate,engine:"local-rules-v1"});
     const small=/24 cm-nel kisebb/.test(supplied),adult=/legalabb 24 cm/.test(supplied),male=/ferfi labbeli/.test(supplied),female=/noi labbeli/.test(supplied);
     const branch=leatherSole?(coversAnkle?"6403510000":"6403590000"):(coversAnkle?"6403910000":"6403990000");
-    if(!small&&!adult)return Response.json({status:"clarification",code:null,confidence:"alacsony",path:[base,{code:branch,line:1,description:coversAnkle?"Bokát takaró lábbeli":"Más lábbeli"}],reasoning:"A fő alszám meghatározható; a 10 jegyű kódhoz a talpbélés hossza és a férfi/női kivitel szükséges.",clarification:"Mekkora a talpbélés hossza, és férfi vagy női lábbeliről van szó?",clarificationOptions:[{id:"size_men",label:"Legalább 24 cm, férfi",appendText:"talpbélés hossza legalább 24 cm, férfi lábbeli"},{id:"size_women",label:"Legalább 24 cm, női",appendText:"talpbélés hossza legalább 24 cm, női lábbeli"},{id:"size_small",label:"24 cm-nél kisebb",appendText:"talpbélés hossza 24 cm-nél kisebb"}],dataDate:index.dataDate,engine:"local-rules-v1"});
+    if(!small&&!adult)return respond({status:"clarification",code:null,confidence:"alacsony",path:[base,{code:branch,line:1,description:coversAnkle?"Bokát takaró lábbeli":"Más lábbeli"}],reasoning:"A fő alszám meghatározható; a 10 jegyű kódhoz a talpbélés hossza és a férfi/női kivitel szükséges.",clarification:"Mekkora a talpbélés hossza, és férfi vagy női lábbeliről van szó?",clarificationOptions:[{id:"size_men",label:"Legalább 24 cm, férfi",appendText:"talpbélés hossza legalább 24 cm, férfi lábbeli"},{id:"size_women",label:"Legalább 24 cm, női",appendText:"talpbélés hossza legalább 24 cm, női lábbeli"},{id:"size_small",label:"24 cm-nél kisebb",appendText:"talpbélés hossza 24 cm-nél kisebb"}],dataDate:index.dataDate,engine:"local-rules-v1"});
     let finalCode;
     if(leatherSole&&coversAnkle)finalCode=small?"6403511100":male?"6403511500":female?"6403511900":null;
     else if(leatherSole&&!coversAnkle)finalCode=small?"6403593100":male?"6403593500":female?"6403593900":null;
     else if(!leatherSole&&coversAnkle)finalCode=small?"6403919100":male?"6403919600":female?"6403919800":null;
     else finalCode=small?"6403993100":male?"6403993600":female?"6403993800":null;
-    if(finalCode){const finalRow=nom.rows.find(r=>r.code===finalCode);return Response.json({status:"classified",code:finalCode,confidence:"magas",path:[base,{code:branch,line:1,description:coversAnkle?"Bokát takaró lábbeli":"Más lábbeli"},{code:finalCode,line:finalRow?.indent??0,description:finalRow?.description||"Más"}],reasoning:"GRI 1 és 6: a felsőrész, a külső talp, a fém cipőorr hiánya, a bokát takaró kialakítás, a talpbélés hossza és a férfi/női kivitel alapján.",clarification:null,dataDate:index.dataDate,engine:"local-rules-v1"});}
+    if(finalCode){const finalRow=nom.rows.find(r=>r.code===finalCode);return respond({status:"classified",code:finalCode,confidence:"magas",path:[base,{code:branch,line:1,description:coversAnkle?"Bokát takaró lábbeli":"Más lábbeli"},{code:finalCode,line:finalRow?.indent??0,description:finalRow?.description||"Más"}],reasoning:"GRI 1 és 6: a felsőrész, a külső talp, a fém cipőorr hiánya, a bokát takaró kialakítás, a talpbélés hossza és a férfi/női kivitel alapján.",clarification:null,dataDate:index.dataDate,engine:"local-rules-v1"});}
   }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
   const isKitchenKnife = /konyhaikes|konyhakes|szakacskes/.test(compact) || /konyhai\s+kes|szakacs\s+kes/.test(supplied);
@@ -128,7 +143,7 @@ export default async (request) => {
       const row = nom.rows.find((item) => item.code === code);
       return { code, line: row?.indent ?? 0, description: row?.description ?? "Más készülék" };
     });
-    return Response.json({
+    return respond({
       status: "classified", code: "8509800000", confidence: "magas", path,
       reasoning: "GRI 1 és 6: az elektromos konyhai kés beépített elektromotorral működő elektromechanikus háztartási készülék. Nem önálló kézi késként, hanem a 8509 vámtarifaszám más készülék alszámán osztályozandó.",
       clarification: null,
@@ -137,7 +152,7 @@ export default async (request) => {
     });
   }
   if (isHuntingKnife && !isFixedBlade && !isFoldingBlade) {
-    return Response.json({
+    return respond({
       status: "clarification",
       code: null,
       confidence: "alacsony",
@@ -160,7 +175,7 @@ export default async (request) => {
     });
   }
   if (isHuntingKnife && isFoldingBlade) {
-    return Response.json({
+    return respond({
       status: "classified", code: "8211930000", confidence: "magas",
       path: [
         { code: "8211000000", line: 0, description: "Kés éles vágópengével, fűrészes is (beleértve a kertészkést is), a 8208 vtsz. alá tartozó kés kivételével, és penge ezekhez" },
@@ -172,7 +187,7 @@ export default async (request) => {
     });
   }
   if (isKitchenKnife && !isFoldingBlade) {
-    return Response.json({
+    return respond({
       status: "classified",
       code: "8211920000",
       confidence: "magas",
@@ -194,7 +209,7 @@ export default async (request) => {
     });
   }
   if (isKitchenKnife && isFoldingBlade) {
-    return Response.json({
+    return respond({
       status: "classified", code: "8211930000", confidence: "magas",
       path: [
         { code: "8211000000", line: 0, description: "Kés éles vágópengével" },
@@ -212,7 +227,7 @@ export default async (request) => {
       const row = rows.sort((a, b) => a.indent - b.indent)[0];
       return { code, line: row?.indent ?? 0, description: row?.description ?? "Más" };
     });
-    return Response.json({
+    return respond({
       status: "classified",
       code: "8211920000",
       confidence: "magas",
@@ -274,7 +289,7 @@ export default async (request) => {
         description: r.description,
       }));
   if (!hierarchy.length)
-    return Response.json({
+    return respond({
       status: "clarification",
       clarification:
         "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
@@ -293,7 +308,7 @@ export default async (request) => {
       norm(row.description).split(/[^a-z0-9]+/).includes(atomic),
     );
     if (specific)
-      return Response.json({
+      return respond({
         status: "classified",
         code: specific.code,
         confidence: "magas",
@@ -304,7 +319,7 @@ export default async (request) => {
       });
     const residual = children.find((row) => norm(row.description) === "mas");
     if (residual && !children.some((row) => norm(row.description).includes(atomic)))
-      return Response.json({
+      return respond({
         status: "classified",
         code: residual.code,
         confidence: "magas",
@@ -366,7 +381,7 @@ export default async (request) => {
       candidateCode: item.code,
     }));
   }
-  return Response.json({
+  return respond({
     status: "clarification",
     code: null,
     confidence: "alacsony",

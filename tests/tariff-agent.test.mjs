@@ -51,3 +51,20 @@ if (tshirt.code !== "6109100010")
 if (tshirt.status === "clarification")
   throw new Error("A rendszer a pamut póló már megadott anyagára kérdezett.");
 console.log("OK pamut póló → 6109100010");
+
+
+const swordResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "pallós", description: "nagy kard, acélból" })
+}));
+const sword = await swordResponse.json();
+if (sword.code !== "9307000000")
+  throw new Error(`Várt 9307000000, kapott: ${sword.code}`);
+if (sword.status === "clarification")
+  throw new Error("A rendszer a leírásban már megadott anyagra kérdezett.");
+if (!sword.factsUsed?.extracted?.materials?.includes("steel"))
+  throw new Error("Az acél anyagot nem nyerte ki az egyesített szövegből.");
+if (!sword.factsUsed?.extracted?.productTerms?.some((term) => term === "pallos"))
+  throw new Error("A pallós szinonimát nem ismerte fel.");
+console.log("OK pallós + nagy kard + acélból → 9307000000");
