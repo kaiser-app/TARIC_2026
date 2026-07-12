@@ -111,3 +111,20 @@ if (cage.status === "clarification")
 if (!cage.factsUsed?.function?.length || cage.factsUsed?.construction !== "acélsodrony")
   throw new Error("A szemantikai ténykinyerés hiányos.");
 console.log("OK acélsodrony kalitka → 7326200090");
+
+
+const terrariumResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "TERRÁRIUM", description: "500 LITERES, ÜVEG ÉS BETON" })
+}));
+const terrarium = await terrariumResponse.json();
+if (terrarium.status !== "clarification")
+  throw new Error("Az üveg-beton összetett terráriumnál a lényeges jelleg tisztázása szükséges.");
+if (/rendeltetése|termékfajtája/.test(terrarium.clarification || ""))
+  throw new Error("A rendszer visszakérdezett a terrárium megnevezéséből már ismert rendeltetésre.");
+if (!/fő tartószerkezete|lényeges jellegét/.test(terrarium.clarification || ""))
+  throw new Error("A kérdés nem a tarifálást eldöntő anyagi szerepre vonatkozik.");
+if (terrarium.clarificationOptions?.length !== 2)
+  throw new Error("Az üveg és beton választási lehetőségei hiányoznak.");
+console.log("OK terrárium + üveg és beton → csak a lényeges jelleget tisztázza");
