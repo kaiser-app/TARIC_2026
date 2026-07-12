@@ -85,8 +85,41 @@ export default async (request) => {
   }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
   const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
-  const isFixedBlade = !/osszecsukhato|behajthato|zsebkes/.test(supplied);
-  if (isHuntingKnife && hasSteelBlade && isFixedBlade) {
+  const isFoldingBlade = /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(supplied);
+  const isFixedBlade = /rogzitett penge|fix penge|mereven rogzitett/.test(supplied) ||
+    (hasSteelBlade && /\b\d+(?:[.,]\d+)?\s*mm\b/.test(supplied) && !isFoldingBlade);
+  if (isHuntingKnife && !isFixedBlade && !isFoldingBlade) {
+    return Response.json({
+      status: "clarification",
+      code: null,
+      confidence: "alacsony",
+      path: [
+        { code: "8211000000", line: 0, description: "Kés éles vágópengével, fűrészes is (beleértve a kertészkést is), a 8208 vtsz. alá tartozó kés kivételével, és penge ezekhez" },
+        { code: "8211910000", line: 1, description: "Más" },
+      ],
+      reasoning: "GRI 1 és 6: a vadászkés a 8211 vámtarifaszám alá tartozik; a következő alszámot a penge rögzítettsége választja szét.",
+      clarification: "A vadászkés rögzített pengéjű vagy összecsukható (nem mereven rögzített pengéjű)?",
+      factsUsed: {
+        product: "vadászkés",
+        quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
+        valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
+      },
+      dataDate: index.dataDate,
+    });
+  }
+  if (isHuntingKnife && isFoldingBlade) {
+    return Response.json({
+      status: "classified", code: "8211930000", confidence: "magas",
+      path: [
+        { code: "8211000000", line: 0, description: "Kés éles vágópengével, fűrészes is (beleértve a kertészkést is), a 8208 vtsz. alá tartozó kés kivételével, és penge ezekhez" },
+        { code: "8211910000", line: 1, description: "Más" },
+        { code: "8211930000", line: 2, description: "Kés, nem mereven rögzített pengéjű" },
+      ],
+      reasoning: "GRI 1 és 6: az összecsukható vadászkés nem mereven rögzített pengéjű kés.",
+      clarification: null, dataDate: index.dataDate,
+    });
+  }
+  if (isHuntingKnife && isFixedBlade) {
     const codes = ["8211000000", "8211910000", "8211920000"];
     const path = codes.map((code) => {
       const rows = nom.rows.filter((item) => item.code === code);
