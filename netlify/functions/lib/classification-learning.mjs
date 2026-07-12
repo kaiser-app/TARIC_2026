@@ -9,18 +9,21 @@ const normalize = (value) => String(value || "")
   .trim();
 
 const conceptTerms = {
+  terrarium: ["terrarium", "allattarto terrarium", "novenyterrarium"],
   cage: ["kalitka", "madarkalitka", "allatketrec", "ketrec", "bird cage", "animal cage"],
   aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
   sword: ["kard", "pallos", "pallos", "szablya", "katana", "szamurajkard", "szamuraj kard"],
 };
 
 const conceptKnowledge = {
+  terrarium: { functions: ["szárazföldi élőlények vagy növények tartása"], productType: "terrárium" },
   cage: { functions: ["élő állat elhelyezése", "elkülönítés"], productType: "állattartó kalitka vagy ketrec" },
   aquarium: { functions: ["vízi élőlények tartása"], productType: "akvárium" },
   sword: { functions: ["kard jellegű szálfegyver"], productType: "kard" },
 };
 
 const materialTerms = {
+  concrete: ["beton", "betonbol"],
   steel: ["acel", "acelbol", "rozsdamentes acel", "acelpenge"],
   leather: ["bor", "borbol"],
   plastic: ["muanyag", "muanyagbol", "szilikon", "gumi"],
