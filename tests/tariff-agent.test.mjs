@@ -163,3 +163,18 @@ if (!indexedTerrarium.factsUsed?.extracted?.semanticMatches?.some((item) => item
 if (indexedTerrarium.factsUsed?.capacityLitres !== "200" || indexedTerrarium.factsUsed?.glassThicknessMm !== "8")
   throw new Error("A terrárium méret- vagy kapacitásadata nem került feldolgozásra.");
 console.log("OK V0P1 terrárium + üveg + tető + világítás + 200 liter → 7013990000");
+
+
+const pvcPhoneCaseResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "TELEFONTOK", description: "PVC-BŐL, ÜTÉSÁLLÓ FUNKCIÓVAL" })
+}));
+const pvcPhoneCase = await pvcPhoneCaseResponse.json();
+if (pvcPhoneCase.code !== "3926909790")
+  throw new Error(`Várt 3926909790, kapott: ${pvcPhoneCase.code}`);
+if (pvcPhoneCase.status === "clarification" || pvcPhoneCase.clarification)
+  throw new Error(`A PVC ütésálló telefontoknál nem kérdezhet: ${pvcPhoneCase.clarification}`);
+if (!pvcPhoneCase.factsUsed?.extracted?.materials?.includes("plastic"))
+  throw new Error("A PVC anyagot nem normalizálta műanyagként.");
+console.log("OK telefontok + PVC-ből + ütésálló funkció → 3926909790, kérdés nélkül");
