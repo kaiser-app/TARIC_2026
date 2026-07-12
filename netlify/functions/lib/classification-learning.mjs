@@ -60,8 +60,8 @@ export function analyzeProductInput(name, description) {
     materials,
     inferredFacts: {
       ...(conceptKnowledge[canonicalProduct] || {}),
-      construction: /acel\\s*sodrony|acelsodrony|acel\\s*huzal|acelhuzal/.test(normalize(combinedText).replace(/bol\\b/g, "")) ? "acélhuzalból vagy acélsodronyból készült" : null,
-      capacityLitres: normalize(combinedText).match(/\\b(\\d+(?:[.,]\\d+)?)\\s*(?:l|liter|literes)\\b/)?.[1] ?? null,
+      construction: /acel\s*(?:sodrony|huzal)/.test(normalize(combinedText)) ? "acélhuzalból vagy acélsodronyból készült" : null,
+      capacityLitres: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\b/)?.[1] ?? null,
     },
   };
 }
