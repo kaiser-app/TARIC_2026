@@ -150,9 +150,9 @@ export default async (request) => {
     });
   }
   const suppliedFacts = {
-    materials: ["pamut", "gyapjú", "selyem", "len", "szilikon", "műanyag", "rozsdamentes acél", "acél", "csont", "bőr", "textil"]
+    materials: ["pamut", "gyapjú", "selyem", "len", "szilikon", "gumi", "műanyag", "rozsdamentes acél", "acél", "fém", "csont", "bőr", "fa", "üveg", "textil"]
       .filter((value) => supplied.includes(norm(value))),
-    functions: ["védő", "vadászat", "konyhai", "díszítő", "ipari"]
+    functions: ["védő", "burkoló", "vadászat", "konyhai", "háztartási", "díszítő", "ipari", "ruházati", "szállítás", "tárolás"]
       .filter((value) => supplied.includes(norm(value))),
     quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
     valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
@@ -245,12 +245,37 @@ export default async (request) => {
   }
   const topPrefixes = [...new Set(candidates.map((item) => item.code.slice(0, 4)))];
   let clarification;
+  let clarificationOptions;
   if (!suppliedFacts.materials.length) {
     clarification = "Milyen anyagból készült az áru? Ha több anyagból áll, melyik adja a lényeges jellegét?";
+    const materialPool = [
+      ["cotton", "Pamut", "pamutból készült"], ["plastic", "Műanyag", "műanyagból készült"],
+      ["steel", "Fém / acél", "fémből vagy acélból készült"], ["leather", "Bőr", "bőrből készült"],
+      ["wood", "Fa", "fából készült"], ["glass", "Üveg", "üvegből készült"],
+      ["rubber", "Gumi / szilikon", "gumiból vagy szilikonból készült"], ["textile", "Más textil", "textilanyagból készült"],
+    ];
+    const candidateText = norm(candidates.map((item) => item.description).join(" "));
+    const preferred = materialPool.filter(([, label]) => candidateText.includes(norm(label.split(" /")[0])));
+    const selected = [...preferred, ...materialPool.filter((item) => !preferred.includes(item))].slice(0, 6);
+    clarificationOptions = selected.map(([id, label, appendText]) => ({ id: `material_${id}`, label, appendText }));
   } else if (!suppliedFacts.functions.length) {
     clarification = "Mi az áru elsődleges funkciója vagy felhasználási célja?";
+    clarificationOptions = [
+      { id: "function_protective", label: "Védő / burkoló", appendText: "elsődleges funkciója védő vagy burkoló" },
+      { id: "function_household", label: "Háztartási", appendText: "háztartási használatra" },
+      { id: "function_industrial", label: "Ipari", appendText: "ipari felhasználásra" },
+      { id: "function_clothing", label: "Ruházati", appendText: "ruházati rendeltetésű" },
+      { id: "function_decorative", label: "Díszítő", appendText: "díszítő funkciójú" },
+      { id: "function_transport", label: "Szállítás / tárolás", appendText: "szállításra vagy tárolásra szolgál" },
+    ];
   } else {
     clarification = "Milyen a termék pontos fajtája, kialakítása és feldolgozottsági állapota?";
+    clarificationOptions = candidates.slice(0, 5).map((item) => ({
+      id: `candidate_${item.code}`,
+      label: item.description.length > 72 ? `${item.description.slice(0, 69)}…` : item.description,
+      appendText: `pontos fajtája: ${item.description}`,
+      candidateCode: item.code,
+    }));
   }
   return Response.json({
     status: "clarification",
@@ -261,6 +286,7 @@ export default async (request) => {
       ? `A NAV nómenklatúrában a legerősebb jelölt ágak: ${topPrefixes.join(", ")}. A végkódhoz további, tarifálást eldöntő termékjellemző szükséges.`
       : "A megadott leírásból nem választható ki biztonságosan nómenklatúra-ág.",
     clarification,
+    clarificationOptions,
     factsUsed: suppliedFacts,
     dataDate: index.dataDate,
     engine: "local-rules-v1",
