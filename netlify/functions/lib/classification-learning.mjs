@@ -26,7 +26,7 @@ const materialTerms = {
   concrete: ["beton", "betonbol"],
   steel: ["acel", "acelbol", "rozsdamentes acel", "acelpenge"],
   leather: ["bor", "borbol"],
-  plastic: ["muanyag", "muanyagbol", "szilikon", "gumi"],
+  plastic: ["muanyag", "muanyagbol", "szilikon", "gumi", "pvc", "pvcbol", "polivinil klorid"],
   cotton: ["pamut", "pamutbol"],
   wood: ["fa", "fabol"],
   glass: ["uveg", "uvegbol"],
@@ -43,7 +43,7 @@ const ignoredDictionaryTerms = new Set(["anyag", "aru", "termek", "eszkoz", "kes
 const materialAliases = {
   acel: "steel", vas: "steel", fem: "steel", "drot huzal": "steel",
   uveg: "glass", beton: "concrete", bor: "leather", muanyag: "plastic",
-  gumi: "plastic", szilikon: "plastic", fa: "wood", textil: "textile",
+  gumi: "plastic", szilikon: "plastic", pvc: "plastic", "polivinil klorid": "plastic", fa: "wood", textil: "textile",
   pamut: "cotton", gyapju: "textile", selyem: "textile", len: "textile",
 };
 
