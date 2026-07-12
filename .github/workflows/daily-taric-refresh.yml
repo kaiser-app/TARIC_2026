@@ -1,6 +1,9 @@
 name: Daily TARIC refresh
 
 on:
+  push:
+    paths:
+      - ".github/trigger-daily-refresh"
   schedule:
     # GitHub cron UTC-ben fut. A két időpont + a budapesti időkapu együtt
     # kezeli a téli/nyári időszámítást: tényleges futás 07:15 Europe/Budapest.
