@@ -10,3 +10,17 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: API_KEY
+        generateValue: true
+      - key: API_LIMIT_PER_MINUTE
+        value: 20
+      - key: API_LIMIT_PER_DAY
+        value: 1000
+      - key: API_LIMIT_PER_MONTH
+        value: 20000
+      - key: API_MAX_CONCURRENT
+        value: 3
+      - key: API_MAX_REQUEST_BYTES
+        value: 131072
