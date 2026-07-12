@@ -1,0 +1,25 @@
+import { readFile } from "node:fs/promises";
+
+const source = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
+const stages = [
+  'setProgressStage("classification")',
+  'setProgressStage("calculation")',
+  'setProgressStage("measures")',
+];
+for (const stage of stages)
+  if (!source.includes(stage)) throw new Error(`Hiányzó folyamatállapot: ${stage}`);
+
+const labels = [
+  "Betarifálás folyamatban…",
+  "Közteher-kalkuláció folyamatban…",
+  "Kapcsolódó intézkedések feldolgozása…",
+];
+for (const label of labels)
+  if (!source.includes(label)) throw new Error(`Hiányzó folyamatfelirat: ${label}`);
+
+if (!source.includes("{progressLabel}</button>"))
+  throw new Error("A gomb nem az aktuális folyamatfeliratot jeleníti meg.");
+if (!source.includes("setProgressStage(null)"))
+  throw new Error("A folyamatállapot nem áll vissza befejezéskor.");
+
+console.log("OK háromszakaszos folyamatjelző a betarifálási gombon");

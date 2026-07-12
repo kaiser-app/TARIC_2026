@@ -11,7 +11,7 @@ async function getJson(url, options) { const r = await fetch(url, options); cons
 
 export default function App() {
   const [lang, setLang] = useState("hu"), [code, setCode] = useState(""), [product, setProduct] = useState(""), [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false), [error, setError] = useState(""), [result, setResult] = useState(null), [measures, setMeasures] = useState(null);
+  const [loading, setLoading] = useState(false), [progressStage, setProgressStage] = useState(null), [error, setError] = useState(""), [result, setResult] = useState(null), [measures, setMeasures] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [topPanel,setTopPanel]=useState(null),[adminToken,setAdminToken]=useState(""),[adminData,setAdminData]=useState(null),[adminError,setAdminError]=useState("");
   const [options, setOptions] = useState({ traffic: "b2b", date: new Date().toISOString().slice(0, 10), value: "100000", quantity: "1", unit: "db", additions: "0", origin: "CN", direction: "import", dispatch: "", destination: "Magyarország", ecb: "354.13", lineCount: "1" });
@@ -25,9 +25,16 @@ export default function App() {
   }, [lang]);
 
   const optionText = () => `forgalom: ${options.traffic.toUpperCase()}, vámérték: ${Number(options.value)||100000} Ft, mennyiség: ${Number(options.quantity)||1} ${options.unit||"db"}, származás: ${options.origin || "harmadik ország / nincs megadva"}, irány: ${options.direction}, dátum: ${options.date}`;
+  const progressLabel = progressStage === "classification"
+    ? L("Betarifálás folyamatban…", "Classification in progress…")
+    : progressStage === "calculation"
+      ? L("Közteher-kalkuláció folyamatban…", "Duty calculation in progress…")
+      : progressStage === "measures"
+        ? L("Kapcsolódó intézkedések feldolgozása…", "Processing related measures…")
+        : L("Betarifálás indítása", "Start classification");
   const runClassification = async (inputText = query) => {
     const normalizedInput = [product.trim(), inputText.trim(), optionText()].filter(Boolean).join(", ");
-    setLoading(true); setError(""); setResult(null); setMeasures(null);
+    setLoading(true); setProgressStage("classification"); setError(""); setResult(null); setMeasures(null);
     if (normalizedInput) setCode("");
     try {
       const classified = (product.trim() || inputText.trim()) ? await getJson("/api/tariff-agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: product.trim() || inputText.trim().split(/\n+/)[0], description: normalizedInput }) }) : { status: "classified", code: clean(code), confidence: "megadott", path: [], reasoning: "Felhasználó által megadott TARIC-kód." };
@@ -36,10 +43,14 @@ export default function App() {
       if (classified.code) {
         setCode(clean(classified.code));
         const params=new URLSearchParams({code:clean(classified.code),direction:options.direction==="mindkettő"?"all":options.direction,origin:options.origin.trim().toUpperCase()||"CN",valueHuf:String(Number(options.value)||100000),ecbRate:options.ecb||"354.13",traffic:options.traffic});
-        setMeasures(await getJson(`/api/measures?${params}`));
+        setProgressStage("calculation");
+        const measureData = await getJson(`/api/measures?${params}`);
+        setMeasures(measureData);
+        setProgressStage("measures");
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     } catch (err) { setError(err.message || "A lekérdezés sikertelen."); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setProgressStage(null); }
   };
   const submit = (event) => { event.preventDefault(); runClassification(); };
   const chooseClarification = (option) => {
@@ -92,7 +103,7 @@ export default function App() {
         <label>Csomag tételsorainak száma<input inputMode="numeric" value={options.lineCount} onChange={(e) => setOptions({ ...options, lineCount: e.target.value.replace(/\D/g, "") })} /></label>
       </div>}
       <p className="defaults-note">{L("Alapértelmezés: mai dátum · 100 000 Ft vámérték · 1 db · B2B · CN (Kína) · harmadik országos vámtétel.","Defaults: today · HUF 100,000 customs value · 1 unit · B2B · CN (China) · third-country duty.")}</p>
-      <button className="primary agent-submit" disabled={loading || (!code && !product.trim() && !query.trim())}>{loading ? <LoaderCircle className="spin" size={18} /> : <Search size={18} />}{L("Betarifálás indítása","Start classification")}</button>
+      <button className="primary agent-submit" disabled={loading || (!code && !product.trim() && !query.trim())}>{loading ? <LoaderCircle className="spin" size={18} /> : <Search size={18} />}{progressLabel}</button>
     </form></section>
     <section className="grid"><article className="notice"><ShieldCheck /><div><h2>{t.status}</h2><p>{t.text}</p><p><b>{L("Adatnap","Data date")}: {health?.dataVersion || L("betöltés…","loading…")}</b></p></div></article><article><h2>{t.sources}</h2><div className="links">{links.map((x) => <a href={x.href} target="_blank" rel="noreferrer" key={x.href}>{x.label}<ExternalLink size={15} /></a>)}</div></article><article><FileText /><h2>{t.report}</h2><p>{Number(health?.nomenclatureRows || 0).toLocaleString(lang==="hu"?"hu-HU":"en-GB")} {L("nómenklatúra-sor","nomenclature rows")} · {Number(health?.measures || 0).toLocaleString(lang==="hu"?"hu-HU":"en-GB")} {L("intézkedés","measures")} · 92 {L("AIS ellenőrzési szabály","AIS validation rules")}</p></article></section>
     {error && <section className="result error"><AlertCircle /><div><h2>Hiba</h2><p>{error}</p></div></section>}
