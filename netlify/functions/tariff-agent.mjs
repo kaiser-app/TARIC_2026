@@ -83,6 +83,7 @@ export default async (request) => {
     });
   }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
+  const isKitchenKnife = /konyhakes|konyhai kes|szakacskes|szakacs kes/.test(supplied);
   const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
   const isFoldingBlade = /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(supplied);
   const isFixedBlade = /rogzitett penge|fix penge|merev penge|merevpenge/.test(supplied) ||
@@ -120,6 +121,40 @@ export default async (request) => {
       ],
       reasoning: "GRI 1 és 6: az összecsukható vadászkés nem mereven rögzített pengéjű kés.",
       clarification: null, dataDate: index.dataDate,
+    });
+  }
+  if (isKitchenKnife && !isFoldingBlade) {
+    return Response.json({
+      status: "classified",
+      code: "8211920000",
+      confidence: "magas",
+      path: [
+        { code: "8211000000", line: 0, description: "Kés éles vágópengével, fűrészes is (beleértve a kertészkést is), a 8208 vtsz. alá tartozó kés kivételével, és penge ezekhez" },
+        { code: "8211910000", line: 1, description: "Más" },
+        { code: "8211920000", line: 2, description: "Más kés, rögzített pengéjű" },
+      ],
+      reasoning: "GRI 1 és 6: a konyhakés önálló, nem asztali és nem összecsukható, rögzített pengéjű kés; a rozsdamentes acél anyag nem viszi át más árucsoportba.",
+      clarification: null,
+      factsUsed: {
+        product: "konyhakés",
+        function: "konyhai vágás",
+        bladeMaterial: hasSteelBlade ? "rozsdamentes acél" : null,
+        lengthCm: supplied.match(/\b(\d+(?:[.,]\d+)?)\s*cm\b/)?.[1] ?? null,
+      },
+      dataDate: index.dataDate,
+      engine: "local-rules-v1",
+    });
+  }
+  if (isKitchenKnife && isFoldingBlade) {
+    return Response.json({
+      status: "classified", code: "8211930000", confidence: "magas",
+      path: [
+        { code: "8211000000", line: 0, description: "Kés éles vágópengével" },
+        { code: "8211910000", line: 1, description: "Más" },
+        { code: "8211930000", line: 2, description: "Kés, nem mereven rögzített pengéjű" },
+      ],
+      reasoning: "GRI 1 és 6: a megadott konyhakés összecsukható, ezért nem mereven rögzített pengéjű kés.",
+      clarification: null, dataDate: index.dataDate, engine: "local-rules-v1",
     });
   }
   if (isHuntingKnife && isFixedBlade) {
