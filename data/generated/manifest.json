@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "dataDate": "2026-07-11",
-  "generatedAt": "2026-07-11T16:02:57.045Z",
+  "dataDate": "2026-07-12",
+  "generatedAt": "2026-07-12T14:10:17.519Z",
   "sources": [
     {
       "file": "KN_10.xml",
@@ -19,5 +19,8 @@
       "rows": 860
     }
   ],
-  "recordCount": 22322
+  "recordCount": 22322,
+  "nomenclatureRows": 25820,
+  "measureRows": 417944,
+  "measureCodes": 16144
 }
