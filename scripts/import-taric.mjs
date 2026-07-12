@@ -4,6 +4,7 @@ import { resolve, basename } from "node:path";
 const required = ["KN_10.xml", "KN_kieg_kod.xml", "KN_mertekegys.xml"];
 const sourceDir = resolve(process.argv[2] || "data/source");
 const outputDir = resolve(process.argv[3] || "data/generated");
+const dataDate = process.argv[4] || new Date().toISOString().slice(0, 10);
 
 const decode = value => value
   .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
@@ -49,7 +50,7 @@ for (const file of required) {
 
 const generatedAt = new Date().toISOString();
 const payload = {
-  schemaVersion: 1, dataDate: "2026-07-11", generatedAt, sources,
+  schemaVersion: 1, dataDate, generatedAt, sources,
   recordCount: records.size,
   records: [...records.values()].sort((a, b) => a.vtsz.localeCompare(b.vtsz))
 };
