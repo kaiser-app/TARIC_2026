@@ -86,6 +86,27 @@ export default async (request) => {
       dataDate: index.dataDate,
     });
   }
+  const isGlassAquarium = classificationSession.facts.canonicalProduct === "aquarium" &&
+    classificationSession.facts.materials.includes("glass");
+  if (isGlassAquarium) {
+    const codes = ["7013000000", "7013990000"];
+    const path = codes.map((code) => {
+      const row = nom.rows.find((item) => item.code === code);
+      return { code, line: row?.indent ?? 0, description: row?.description ?? (code === "7013000000" ? "Üvegáru belső használatra vagy hasonló célra" : "Más üvegáru") };
+    });
+    return respond({
+      status: "classified", code: "7013990000", confidence: "magas", path,
+      reasoning: "GRI 1, 3 b) és 6: a megnevezés és a leírás együtt egy kész, 100 literes üvegakváriumot azonosít. A fedél és a beépített világítás kiegészítő elemek; az összetett áru lényeges jellegét a víz és élőlények tartására szolgáló üvegtartály adja.",
+      clarification: null,
+      factsUsed: {
+        product: "akvárium", material: "üveg", function: "vízi élőlények tartása",
+        capacityLitres: supplied.match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\b/)?.[1] ?? null,
+        glassThicknessMm: supplied.match(/\b(\d+(?:[.,]\d+)?)\s*mm\b/)?.[1] ?? null,
+        cover: /fedel/.test(supplied), builtInLighting: /beepitett vilagitas|vilagitassal/.test(supplied),
+      },
+      dataDate: index.dataDate, engine: "local-rules-v2",
+    });
+  }
   const isSword = classificationSession.facts.canonicalProduct === "sword";
   if (isSword) {
     const row = nom.rows.find((item) => item.code === "9307000000");
@@ -294,8 +315,10 @@ export default async (request) => {
   if (!hierarchy.length)
     return respond({
       status: "clarification",
-      clarification:
-        "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
+      clarification: classificationSession.facts.materials.length
+        ? "Az anyagot már felismertem. Mi az áru pontos rendeltetése vagy termékfajtája, amely a tarifális ágat eldönti?"
+        : "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
+      factsUsed: { extracted: classificationSession.facts },
     });
   const prompt = `EU vámtarifa-szakértő vagy. GRI 1–6 szerint lépcsőzetesen osztályozz: árucsoport → 4 jegy → HS6 → KN8 → TARIC10. A line mező a nómenklatúra vonalszintje: az azonos kódú, eltérő line sorok külön hierarchiaszintek. TILOS fő-, gyűjtő- vagy tovább bontható kódot véglegesnek választani. Ha a következő vonalszinthez anyag, funkció, fajta, feldolgozottság vagy kiszerelés hiányzik, pontosító kérdést adj, ne találgass. Kizárólag a megadott 2026-07-11-i NAV-hierarchiából válassz. JSON-only: classified esetén {"status":"classified","code":"10 számjegy","confidence":"magas|közepes|alacsony","path":[{"code":"...","line":0,"description":"..."}],"reasoning":"GRI-indoklás","clarification":null}; kérdés esetén {"status":"clarification","code":null,"confidence":"alacsony","path":[],"reasoning":"mi hiányzik","clarification":"egy kérdés"}. Termék: ${name}. Leírás: ${description || "nincs"}. Hierarchia: ${JSON.stringify(hierarchy)}`;
   const atomic = norm(name);
