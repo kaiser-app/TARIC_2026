@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       source_url:
-        description: "OpenKKK napi ZIP közvetlen URL-je (üresen: repository secret)"
+        description: "Opcionális közvetlen ZIP URL; üresen a mappából választja a legfrissebbet"
         required: false
       data_date:
         description: "Adatnap YYYY-MM-DD (üresen: UTC mai nap)"
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SOURCE_URL: ${{ inputs.source_url || secrets.OPENKKK_DAILY_ZIP_URL }}
+      OPENKKK_FOLDER_URL: "https://openkkk.nav.gov.hu/Megosztott%20dokumentumok/Forms/AllItems.aspx?RootFolder=%2FMegosztott%20dokumentumok%2FT%C3%B6rzsek%2FT%C3%B6rzsek%20EV%20kit%C3%B6lt%C3%A9shez%2F2026%5F3%5Fnegyed%C3%A9v%2FEV%5Ft%C3%B6rzsadatok&FolderCTID=0x012000A74CCEA4C7223A438B470FB97E909D83&View=%7BC26B9F09%2DFC44%2D4213%2DA9A4%2D3F54E927FF75%7D"
     steps:
       - uses: actions/checkout@v4
       - name: Budapest 07:15 schedule gate
@@ -41,15 +41,23 @@ jobs:
           cache: npm
       - run: npm ci
         if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
-      - name: Resolve data date
-        if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
-        run: echo "DATA_DATE=${{ inputs.data_date || '' }}" | sed "s/DATA_DATE=$/DATA_DATE=$(date -u +%F)/" >> "$GITHUB_ENV"
       - name: Download daily archive
+        id: download
         if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
         run: |
-          test -n "$SOURCE_URL" || { echo "Missing OPENKKK_DAILY_ZIP_URL"; exit 1; }
-          curl --fail --location --retry 3 --output /tmp/taric-daily.zip "$SOURCE_URL"
+          if [ -n "${{ inputs.source_url || '' }}" ]; then
+            curl --fail --location --retry 3 --output /tmp/taric-daily.zip "${{ inputs.source_url }}"
+            echo "data_date=${{ inputs.data_date || '' }}" >> "$GITHUB_OUTPUT"
+          else
+            node scripts/download-latest-openkkk.mjs "$OPENKKK_FOLDER_URL" /tmp/taric-daily.zip
+          fi
           unzip -t /tmp/taric-daily.zip
+      - name: Resolve data date
+        if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
+        run: |
+          DATA_DATE="${{ inputs.data_date || steps.download.outputs.data_date }}"
+          test -n "$DATA_DATE" || { echo "Missing data date"; exit 1; }
+          echo "DATA_DATE=$DATA_DATE" >> "$GITHUB_ENV"
       - name: Extract and validate required sources
         if: github.event_name != 'schedule' || steps.budapest_gate.outputs.run == 'true'
         run: |
