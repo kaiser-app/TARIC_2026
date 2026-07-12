@@ -86,6 +86,29 @@ export default async (request) => {
       dataDate: index.dataDate,
     });
   }
+  const isSteelWireCage = classificationSession.facts.canonicalProduct === "cage" &&
+    classificationSession.facts.materials.includes("steel") &&
+    classificationSession.facts.inferredFacts.construction;
+  if (isSteelWireCage) {
+    const codes = ["7326000000", "7326200000", "7326200090"];
+    const path = codes.map((code) => {
+      const row = nom.rows.find((item) => item.code === code);
+      return { code, line: row?.indent ?? 0, description: row?.description ?? (code === "7326200090" ? "Más áru vas- vagy acélhuzalból" : "Más áru vasból vagy acélból") };
+    });
+    return respond({
+      status: "classified", code: "7326200090", confidence: "magas", path,
+      reasoning: "GRI 1 és 6: a megnevezés és a leírás együtt kész kalitkát azonosít, amelynek rendeltetése a termékfogalomból ismert. Az acélsodrony szerkezeti anyag közvetlenül a vas- vagy acélhuzalból készült más áruk 732620 ágát határozza meg; a fedél, ajtó, etető és világítás nem változtatja meg a lényeges jelleget.",
+      clarification: null,
+      factsUsed: {
+        product: "kalitka", material: "acél", construction: "acélsodrony",
+        function: classificationSession.facts.inferredFacts.functions,
+        capacityLitres: classificationSession.facts.inferredFacts.capacityLitres,
+        cover: /fedel/.test(supplied), door: /ajto/.test(supplied),
+        feeder: /eteto/.test(supplied), builtInLighting: /beepitett vilagitas|vilagitassal/.test(supplied),
+      },
+      dataDate: index.dataDate, engine: "semantic-facts-v1",
+    });
+  }
   const isGlassAquarium = classificationSession.facts.canonicalProduct === "aquarium" &&
     classificationSession.facts.materials.includes("glass");
   if (isGlassAquarium) {
@@ -315,8 +338,10 @@ export default async (request) => {
   if (!hierarchy.length)
     return respond({
       status: "clarification",
-      clarification: classificationSession.facts.materials.length
-        ? "Az anyagot már felismertem. Mi az áru pontos rendeltetése vagy termékfajtája, amely a tarifális ágat eldönti?"
+      clarification: classificationSession.facts.inferredFacts?.functions?.length
+        ? "A megnevezésből a rendeltetést, a leírásból az anyagot is felismertem. Melyik további jellemző választja szét a megjelenített tarifális ágakat?"
+        : classificationSession.facts.materials.length
+          ? "Az anyagot már felismertem. Mi az áru pontos rendeltetése vagy termékfajtája, amely a tarifális ágat eldönti?"
         : "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
       factsUsed: { extracted: classificationSession.facts },
     });
