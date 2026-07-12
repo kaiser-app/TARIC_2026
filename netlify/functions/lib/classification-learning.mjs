@@ -9,8 +9,15 @@ const normalize = (value) => String(value || "")
   .trim();
 
 const conceptTerms = {
+  cage: ["kalitka", "madarkalitka", "allatketrec", "ketrec", "bird cage", "animal cage"],
   aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
   sword: ["kard", "pallos", "pallos", "szablya", "katana", "szamurajkard", "szamuraj kard"],
+};
+
+const conceptKnowledge = {
+  cage: { functions: ["élő állat elhelyezése", "elkülönítés"], productType: "állattartó kalitka vagy ketrec" },
+  aquarium: { functions: ["vízi élőlények tartása"], productType: "akvárium" },
+  sword: { functions: ["kard jellegű szálfegyver"], productType: "kard" },
 };
 
 const materialTerms = {
@@ -51,6 +58,11 @@ export function analyzeProductInput(name, description) {
     productTerms: [...new Set(productTerms)],
     canonicalProduct,
     materials,
+    inferredFacts: {
+      ...(conceptKnowledge[canonicalProduct] || {}),
+      construction: /acel\\s*sodrony|acelsodrony|acel\\s*huzal|acelhuzal/.test(normalize(combinedText).replace(/bol\\b/g, "")) ? "acélhuzalból vagy acélsodronyból készült" : null,
+      capacityLitres: normalize(combinedText).match(/\\b(\\d+(?:[.,]\\d+)?)\\s*(?:l|liter|literes)\\b/)?.[1] ?? null,
+    },
   };
 }
 
