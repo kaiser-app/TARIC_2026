@@ -206,3 +206,16 @@ const footwear = await footwearResponse.json();
 if (footwear.code !== "6403919600" || footwear.engine !== "profile-engine-v1")
   throw new Error(`A bőr bakancs nem az általános profilmotoron osztályozódott: ${footwear.code}, ${footwear.engine}`);
 console.log("OK bőr bakancs → általános profilmotor → 6403919600");
+
+const sunglassesResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "NAPSZEMÜVEG", description: "FÉM KERETTEL, DIOPTRIA NÉLKÜL, FEKETE LENCSÉVEL" })
+}));
+const sunglasses = await sunglassesResponse.json();
+if (sunglasses.code !== "9004100000" || sunglasses.status === "clarification")
+  throw new Error(`A pontos napszemüveg-találat hibás: ${sunglasses.code}, ${sunglasses.clarification}`);
+if (sunglasses.factsUsed?.extracted?.canonicalProduct === "fekete")
+  throw new Error("A fekete színt a rendszer továbbra is termékfogalomként kezeli.");
+if (sunglasses.path?.some((row) => /^03/.test(row.code)) || sunglasses.path?.some((row) => row.description?.includes("polivinilkloridfilm")))
+  throw new Error("Színalapú irreleváns hal- vagy fóliatalálat maradt az eredményben.");
+console.log("OK napszemüveg + fekete lencse → 9004100000, színalapú zaj nélkül");
