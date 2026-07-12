@@ -1,0 +1,75 @@
+name: Daily TARIC refresh
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: "OpenKKK napi ZIP közvetlen URL-je (üresen: repository secret)"
+        required: false
+      data_date:
+        description: "Adatnap YYYY-MM-DD (üresen: UTC mai nap)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-taric-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOURCE_URL: ${{ inputs.source_url || secrets.OPENKKK_DAILY_ZIP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Resolve data date
+        run: echo "DATA_DATE=${{ inputs.data_date || '' }}" | sed "s/DATA_DATE=$/DATA_DATE=$(date -u +%F)/" >> "$GITHUB_ENV"
+      - name: Download daily archive
+        run: |
+          test -n "$SOURCE_URL" || { echo "Missing OPENKKK_DAILY_ZIP_URL"; exit 1; }
+          curl --fail --location --retry 3 --output /tmp/taric-daily.zip "$SOURCE_URL"
+          unzip -t /tmp/taric-daily.zip
+      - name: Extract and validate required sources
+        run: |
+          rm -rf /tmp/taric-source
+          mkdir -p /tmp/taric-source
+          unzip -q /tmp/taric-daily.zip -d /tmp/taric-source
+          for f in KN_10.xml KN_kieg_kod.xml KN_mertekegys.xml import_intezkedes_EU.xml import_intezkedes_HU.xml export_intezkedesek.xml; do test -s "/tmp/taric-source/$f" || exit 1; done
+      - name: Build SQLite snapshot and application indexes
+        run: |
+          node scripts/build-taric-v2.mjs /tmp/taric-source taric-current.db "$DATA_DATE"
+          mkdir -p data/generated
+          node scripts/import-taric.mjs /tmp/taric-source data/generated "$DATA_DATE"
+          node scripts/import-nomenclature.mjs /tmp/taric-source/KN_10.xml data/generated/nomenclature-rows.json "$DATA_DATE"
+          node scripts/import-measures.mjs /tmp/taric-source data/generated "$DATA_DATE"
+          node scripts/validate-daily-build.mjs taric-current.db data/generated "$DATA_DATE"
+      - name: Prepare compact Render data
+        run: |
+          gzip -9 -c data/generated/taric-index.json | base64 -w0 > data/generated/taric-index.json.gz.b64
+          gzip -9 -c data/generated/nomenclature-rows.json | base64 -w0 > data/generated/nomenclature-rows.json.gz.b64
+          gzip -9 -c data/generated/measures-index.json | base64 -w0 > /tmp/measures.b64
+          split -n 5 -d -a 2 /tmp/measures.b64 data/generated/measures-index.json.gz.b64.part
+          rm -f data/generated/taric-index.json data/generated/nomenclature-rows.json data/generated/measures-index.json data/generated/measures-index.json.gz.b64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taric-db-${{ env.DATA_DATE }}
+          path: taric-current.db
+          retention-days: 30
+      - name: Commit validated daily indexes
+        run: |
+          git config user.name "taric-refresh-bot"
+          git config user.email "taric-refresh-bot@users.noreply.github.com"
+          git add data/generated
+          git diff --cached --quiet && exit 0
+          git commit -m "Daily TARIC data: $DATA_DATE"
+          git push
