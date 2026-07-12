@@ -52,7 +52,7 @@ export default async (request) => {
   const synonymText = [
     classificationSession.facts.semanticSearchText || "",
   ].join(" ");
-  const ignored = new Set(["b2b","b2c","import","export","datum","vamertek","mennyiseg","szarmazas","irany","forgalom","harmadik","orszag"]);
+  const ignored = new Set(["b2b","b2c","import","export","datum","vamertek","mennyiseg","szarmazas","irany","forgalom","harmadik","orszag","fekete","feher","piros","voros","kek","zold","sarga","barna","szurke","lila","rozsaszin","atlatszo","szines"]);
   const nameWords = norm(name + " " + (classificationSession.facts.semanticTerms || "")).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
   const descriptionWords = norm(description + synonymText).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
   const words = [...new Set([...nameWords, ...descriptionWords])],
@@ -181,6 +181,16 @@ export default async (request) => {
     if (candidates.length === 5) break;
   }
   const topPrefixes = [...new Set(candidates.map((item) => item.code.slice(0, 4)))];
+  const exactCandidate = candidates.find((item) => norm(item.description).trim() === norm(name).trim());
+  if (exactCandidate) {
+    return respond({
+      status: "classified", code: exactCandidate.code, confidence: "magas",
+      path: hierarchy.filter((row) => exactCandidate.code.startsWith(row.code.slice(0, 4)) && row.code === exactCandidate.code),
+      reasoning: "GRI 1: a termék megnevezése pontosan megegyezik a NAV-nómenklatúra végleges termékmegnevezésével; a szín és más leíró módosítók nem írják felül a pontos termékazonosítást.",
+      clarification: null, factsUsed: suppliedFacts, dataDate: index.dataDate,
+      engine: "exact-nomenclature-match-v1",
+    });
+  }
   let clarification;
   let clarificationOptions;
   if (!suppliedFacts.materials.length) {
