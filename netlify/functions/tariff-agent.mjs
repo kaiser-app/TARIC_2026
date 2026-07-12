@@ -84,10 +84,25 @@ export default async (request) => {
   }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
   const isKitchenKnife = /konyhakes|konyhai kes|szakacskes|szakacs kes/.test(supplied);
+  const isElectricKitchenKnife = isKitchenKnife && /elektromos|villany|beepitett elektromotor|motoros/.test(supplied);
   const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
   const isFoldingBlade = /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(supplied);
   const isFixedBlade = /rogzitett penge|fix penge|merev penge|merevpenge/.test(supplied) ||
     (hasSteelBlade && /\b\d+(?:[.,]\d+)?\s*mm\b/.test(supplied) && !isFoldingBlade);
+  if (isElectricKitchenKnife) {
+    const codes = ["8509000000", "8509800000"];
+    const path = codes.map((code) => {
+      const row = nom.rows.find((item) => item.code === code);
+      return { code, line: row?.indent ?? 0, description: row?.description ?? "Más készülék" };
+    });
+    return Response.json({
+      status: "classified", code: "8509800000", confidence: "magas", path,
+      reasoning: "GRI 1 és 6: az elektromos konyhai kés beépített elektromotorral működő elektromechanikus háztartási készülék. Nem önálló kézi késként, hanem a 8509 vámtarifaszám más készülék alszámán osztályozandó.",
+      clarification: null,
+      factsUsed: { product: "elektromos konyhai kés", function: "háztartási élelmiszervágás", drive: "beépített elektromotor" },
+      dataDate: index.dataDate, engine: "local-rules-v1",
+    });
+  }
   if (isHuntingKnife && !isFixedBlade && !isFoldingBlade) {
     return Response.json({
       status: "clarification",
