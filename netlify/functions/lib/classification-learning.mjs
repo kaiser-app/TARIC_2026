@@ -9,6 +9,7 @@ const normalize = (value) => String(value || "")
   .trim();
 
 const conceptTerms = {
+  aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
   sword: ["kard", "pallos", "pallos", "szablya", "katana", "szamurajkard", "szamuraj kard"],
 };
 
