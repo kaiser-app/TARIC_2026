@@ -85,7 +85,7 @@ export default async (request) => {
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
   const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
   const isFoldingBlade = /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(supplied);
-  const isFixedBlade = /rogzitett penge|fix penge|mereven rogzitett/.test(supplied) ||
+  const isFixedBlade = /rogzitett penge|fix penge|merev penge|merevpenge/.test(supplied) ||
     (hasSteelBlade && /\b\d+(?:[.,]\d+)?\s*mm\b/.test(supplied) && !isFoldingBlade);
   if (isHuntingKnife && !isFixedBlade && !isFoldingBlade) {
     return Response.json({
@@ -98,6 +98,10 @@ export default async (request) => {
       ],
       reasoning: "GRI 1 és 6: a vadászkés a 8211 vámtarifaszám alá tartozik; a következő alszámot a penge rögzítettsége választja szét.",
       clarification: "A vadászkés rögzített pengéjű vagy összecsukható (nem mereven rögzített pengéjű)?",
+      clarificationOptions: [
+        { id: "fixed_blade", label: "Rögzített pengéjű", appendText: "rögzített pengéjű, merev penge" },
+        { id: "folding_blade", label: "Összecsukható", appendText: "összecsukható, nem mereven rögzített pengéjű" },
+      ],
       factsUsed: {
         product: "vadászkés",
         quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
