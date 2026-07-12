@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "dataDate": "2026-07-11",
+  "generatedAt": "2026-07-11T16:02:57.045Z",
+  "sources": [
+    {
+      "file": "KN_10.xml",
+      "bytes": 16652568,
+      "rows": 25820
+    },
+    {
+      "file": "KN_kieg_kod.xml",
+      "bytes": 7945446,
+      "rows": 25901
+    },
+    {
+      "file": "KN_mertekegys.xml",
+      "bytes": 204182,
+      "rows": 860
+    }
+  ],
+  "recordCount": 22322
+}
