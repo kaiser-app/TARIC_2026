@@ -30,6 +30,7 @@ export default async (request) => {
       ).then(JSON.parse),
     ]);
   const supplied = norm(name + " " + description);
+  const compact = supplied.replace(/[^a-z0-9]/g, "");
   const isPhoneCase = /telefontok|telefon tok/.test(supplied);
   const isPlasticLike = /szilikon|muanyag|tpu|gumi/.test(supplied);
   const hasProtectiveFunction = /vedo|vedelem|boritas|burkolat/.test(supplied);
@@ -83,8 +84,9 @@ export default async (request) => {
     });
   }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
-  const isKitchenKnife = /konyhakes|konyhai kes|szakacskes|szakacs kes/.test(supplied);
-  const isElectricKitchenKnife = isKitchenKnife && /elektromos|villany|beepitett elektromotor|motoros/.test(supplied);
+  const isKitchenKnife = /konyhaikes|konyhakes|szakacskes/.test(compact) || /konyhai\s+kes|szakacs\s+kes/.test(supplied);
+  const isElectricKnife = /elektromoskes|villanykes|motoroskes/.test(compact) || ((isKitchenKnife || /\bkes\b/.test(supplied)) && /elektromos|villany|beepitett elektromotor|motoros/.test(supplied));
+  const isElectricKitchenKnife = isElectricKnife && (isKitchenKnife || /haztartasi|etel|kenyer|hus|konyha/.test(supplied) || /elektromoskes|villanykes/.test(compact));
   const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
   const isFoldingBlade = /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(supplied);
   const isFixedBlade = /rogzitett penge|fix penge|merev penge|merevpenge/.test(supplied) ||
@@ -211,15 +213,18 @@ export default async (request) => {
   const synonymText = isPhoneCase
     ? " muanyagbol keszult mas aru tok tarto vedoburkolat "
     : "";
-  const words = norm(name + " " + description + synonymText)
-      .split(/[^a-z0-9]+/)
-      .filter((w) => w.length > 2),
+  const ignored = new Set(["b2b","b2c","import","export","datum","vamertek","mennyiseg","szarmazas","irany","forgalom","harmadik","orszag"]);
+  const nameWords = norm(name).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
+  const descriptionWords = norm(description + synonymText).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
+  const words = [...new Set([...nameWords, ...descriptionWords])],
     scored = [];
   for (const r of index.records) {
     if (!r.descriptionHu) continue;
     const d = norm(r.descriptionHu);
     let score = 0;
-    for (const w of words) if (d.includes(w)) score += w.length;
+    let nameMatches=0;
+    for (const w of words) if (d.includes(w)) {const inName=nameWords.includes(w);score += w.length*(inName?4:1);if(inName)nameMatches++;}
+    if(nameWords.length && !nameMatches)continue;
     if (score) scored.push({ ...r, score });
   }
   scored.sort((a, b) => b.score - a.score);
