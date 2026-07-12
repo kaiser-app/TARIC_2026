@@ -81,3 +81,18 @@ if (impactCase.code !== "3926909790")
 if (impactCase.status === "clarification")
   throw new Error("Az ütésálló tulajdonságból nem ismerte fel a védő funkciót.");
 console.log("OK mobiltelefon-tok + szilikonból + ütésálló → 3926909790");
+
+
+const aquariumResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "AKVÁRIUM", description: "6 MM-ES ÜVEGBŐL, 100 LITERES FEDÉLLEL ÉS BEÉPÍTETT VILÁGÍTÁSSAL" })
+}));
+const aquarium = await aquariumResponse.json();
+if (aquarium.code !== "7013990000")
+  throw new Error(`Várt 7013990000, kapott: ${aquarium.code}`);
+if (aquarium.status === "clarification")
+  throw new Error("A rendszer nem használta fel az akvárium leírásában már megadott tényeket.");
+if (aquarium.factsUsed?.capacityLitres !== "100" || aquarium.factsUsed?.glassThicknessMm !== "6")
+  throw new Error("A méret- vagy kapacitásadat kinyerése hibás.");
+console.log("OK 100 literes, 6 mm-es üvegakvárium világítással → 7013990000");
