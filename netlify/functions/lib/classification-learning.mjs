@@ -50,12 +50,14 @@ const materialAliases = {
 function semanticMatches(name, combinedText, semanticIndex) {
   if (!semanticIndex?.lookup || !semanticIndex?.records) return [];
   const normalizedName = normalize(name);
-  const normalizedCombined = ` ${normalize(combinedText)} `;
+  const words = normalize(combinedText).split(" ").filter(Boolean);
   const ids = new Set(semanticIndex.lookup[normalizedName] || []);
-  for (const [term, recordIds] of Object.entries(semanticIndex.lookup)) {
-    if (ids.size >= 8) break;
-    if (term.length < 4 || ignoredDictionaryTerms.has(term)) continue;
-    if (normalizedCombined.includes(` ${term} `)) for (const id of recordIds) ids.add(id);
+  for (let size = Math.min(4, words.length); size >= 1 && ids.size < 8; size--) {
+    for (let start = 0; start + size <= words.length && ids.size < 8; start++) {
+      const term = words.slice(start, start + size).join(" ");
+      if (term.length < 4 || ignoredDictionaryTerms.has(term)) continue;
+      for (const id of semanticIndex.lookup[term] || []) ids.add(id);
+    }
   }
   return [...ids].map((id) => semanticIndex.records[id]).filter(Boolean)
     .sort((a, b) => (a.r === "H" ? -1 : 0) - (b.r === "H" ? -1 : 0)).slice(0, 8);
