@@ -68,3 +68,16 @@ if (!sword.factsUsed?.extracted?.materials?.includes("steel"))
 if (!sword.factsUsed?.extracted?.productTerms?.some((term) => term === "pallos"))
   throw new Error("A pallós szinonimát nem ismerte fel.");
 console.log("OK pallós + nagy kard + acélból → 9307000000");
+
+
+const impactCaseResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "MOBIL TELEFON TOK", description: "SZILIKONBÓL, ÜTÉSÁLLÓ, KÉK SZÍNŰ" })
+}));
+const impactCase = await impactCaseResponse.json();
+if (impactCase.code !== "3926909790")
+  throw new Error(`Várt 3926909790, kapott: ${impactCase.code}`);
+if (impactCase.status === "clarification")
+  throw new Error("Az ütésálló tulajdonságból nem ismerte fel a védő funkciót.");
+console.log("OK mobiltelefon-tok + szilikonból + ütésálló → 3926909790");
