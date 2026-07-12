@@ -9,7 +9,16 @@ for (const name of names) {
     await access(target);
     continue;
   } catch {}
-  const encoded = await readFile(`${target}.gz.b64`, "utf8");
+  let encoded;
+  if (name === "measures-index.json") {
+    const parts = [];
+    for (let index = 0; index < 5; index++) {
+      parts.push(await readFile(`${target}.gz.b64.part${String(index).padStart(2, "0")}`, "utf8"));
+    }
+    encoded = parts.join("");
+  } else {
+    encoded = await readFile(`${target}.gz.b64`, "utf8");
+  }
   await writeFile(target, gunzipSync(Buffer.from(encoded.trim(), "base64")));
   console.log(`Prepared ${name}`);
 }
