@@ -18,16 +18,23 @@ export default function App() {
     eye: "Verifiable classification support", title: "TARIC Classification Agent", lead: "Commodity classification and duty preparation based on authoritative sources.", code: "TARIC code", product: "Product name or description", placeholder: "e.g. 100% cotton knitted T-shirt", search: "Start verification", status: "NAV data connection active", text: "Classification uses the NAV/OpenKKK nomenclature and measures snapshot dated 11 July 2026.", sources: "Official sources", report: "Data status", result: "Classification result", clarification: "Clarification required", measures: "Related measures", none: "No measure to display."
   }, [lang]);
 
-  const submit = async (event) => {
-    event.preventDefault(); setLoading(true); setError(""); setResult(null); setMeasures(null);
-    if (query.trim()) setCode("");
+  const runClassification = async (inputText = query) => {
+    const normalizedInput = inputText.trim();
+    setLoading(true); setError(""); setResult(null); setMeasures(null);
+    if (normalizedInput) setCode("");
     try {
-      const classified = query.trim() ? await getJson("/api/tariff-agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: query.trim().split(/\n+/)[0], description: query.trim() }) }) : { status: "classified", code: clean(code), confidence: "megadott", path: [], reasoning: "Felhasználó által megadott TARIC-kód." };
+      const classified = normalizedInput ? await getJson("/api/tariff-agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: normalizedInput.split(/\n+/)[0], description: normalizedInput }) }) : { status: "classified", code: clean(code), confidence: "megadott", path: [], reasoning: "Felhasználó által megadott TARIC-kód." };
       setResult(classified);
       if (!classified.code) setCode("");
       if (classified.code) { setCode(clean(classified.code)); setMeasures(await getJson(`/api/measures?code=${clean(classified.code)}&direction=import`)); }
     } catch (err) { setError(err.message || "A lekérdezés sikertelen."); }
     finally { setLoading(false); }
+  };
+  const submit = (event) => { event.preventDefault(); runClassification(); };
+  const chooseClarification = (option) => {
+    const next = `${query.trim()}${query.trim() ? ", " : ""}${option.appendText}`;
+    setQuery(next);
+    runClassification(next);
   };
 
   return <main>
@@ -36,7 +43,7 @@ export default function App() {
     <section className="panel"><form onSubmit={submit}><label>{t.code}<input inputMode="numeric" value={code} onChange={(e) => setCode(clean(e.target.value))} placeholder="0000000000" /></label><label>{t.product}<textarea value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.placeholder} rows="4" /></label><button className="primary" disabled={loading || (!code && !query.trim())}>{loading ? <LoaderCircle className="spin" size={18} /> : <Search size={18} />}{t.search}</button></form></section>
     <section className="grid"><article className="notice"><ShieldCheck /><div><h2>{t.status}</h2><p>{t.text}</p></div></article><article><h2>{t.sources}</h2><div className="links">{links.map((x) => <a href={x.href} target="_blank" rel="noreferrer" key={x.href}>{x.label}<ExternalLink size={15} /></a>)}</div></article><article><FileText /><h2>{t.report}</h2><p>25 820 nómenklatúra-sor · 227 949 intézkedés · 92 AIS ellenőrzési szabály</p></article></section>
     {error && <section className="result error"><AlertCircle /><div><h2>Hiba</h2><p>{error}</p></div></section>}
-    {result && <section className={`result ${result.status === "clarification" ? "needs-input" : ""}`}><h2>{result.status === "clarification" ? t.clarification : t.result}</h2>{result.code && <div className="result-code">{grouped(result.code)} <span>{result.confidence}</span></div>}{result.clarification && <p className="question">{result.clarification}</p>}{result.reasoning && <p>{result.reasoning}</p>}{!!result.path?.length && <ol className="path">{result.path.map((row, i) => <li key={`${row.code}-${row.line}-${i}`} style={{ marginLeft: `${Math.max(0, Number(row.line || 0)) * 18}px` }}><code>{grouped(row.code)}</code><span>{row.description}</span></li>)}</ol>}{result.dataDate && <small>Adatnap: {result.dataDate}</small>}</section>}
+    {result && <section className={`result ${result.status === "clarification" ? "needs-input" : ""}`}><h2>{result.status === "clarification" ? t.clarification : t.result}</h2>{result.code && <div className="result-code">{grouped(result.code)} <span>{result.confidence}</span></div>}{result.clarification && <p className="question">{result.clarification}</p>}{!!result.clarificationOptions?.length && <div className="clarification-options">{result.clarificationOptions.map((option) => <button type="button" key={option.id} disabled={loading} onClick={() => chooseClarification(option)}>{option.label}</button>)}</div>}{result.reasoning && <p>{result.reasoning}</p>}{!!result.path?.length && <ol className="path">{result.path.map((row, i) => <li key={`${row.code}-${row.line}-${i}`} style={{ marginLeft: `${Math.max(0, Number(row.line || 0)) * 18}px` }}><code>{grouped(row.code)}</code><span>{row.description}</span></li>)}</ol>}{result.dataDate && <small>Adatnap: {result.dataDate}</small>}</section>}
     {measures && <section className="result"><h2>{t.measures} <span className="count">{measures.count}</span></h2>{measures.measures?.length ? <div className="measure-list">{measures.measures.slice(0, 30).map((item, i) => <div className="measure" key={`${item.sourceCode}-${item.type}-${item.area}-${i}`}><b>{item.type || "—"}</b><span>{item.area || "Erga omnes"}</span><span>{item.description || item.certificate || "Kapcsolódó TARIC-intézkedés"}</span>{item.additionalCode && <code>{item.additionalCode}</code>}</div>)}</div> : <p>{t.none}</p>}{measures.truncated && <small>Az első 30 tétel látható; a teljes találati lista {measures.count} elem.</small>}</section>}
     <footer>Információs és döntéstámogató rendszer – a hivatalos hatósági ellenőrzést nem helyettesíti.</footer>
   </main>;
