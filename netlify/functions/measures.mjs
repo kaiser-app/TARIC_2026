@@ -4,7 +4,7 @@ const applies=(measureCode,code)=>code.startsWith(measureCode.replace(/0+$/, "")
 const typeNames={
   "103":"Harmadik ország vámtétele","107":"Kisértékű küldeményekre vonatkozó vám",
   "117":"Vámfelfüggesztés meghatározott felhasználásra","119":"Légi felhasználhatósági vámfelfüggesztés",
-  "410":"Állat-egészségügyi ellenőrzés","705":"Kínzásra és elnyomásra alkalmas áruk ellenőrzése",
+  "410":"Állat-egészségügyi ellenőrzés","705":"Kínzásra és elnyomásra alkalmas áruk ellenőrzése","710":"Importellenőrzés – CITES",
   "724":"Fluortartalmú üvegházhatású gázok ellenőrzése","750":"Ökológiai termékek ellenőrzése",
   "760":"Behozatali feltételek / igazolások","761":"REACH korlátozási feltételek","762":"Területi behozatali feltételek",
   "AAF":"Általános forgalmi adó"
@@ -35,13 +35,22 @@ export default async request=>{
       const[d,area,type,additional,certificate,description,start,end]=item;
       if(direction!=="all"&&!d.startsWith(direction))continue;
       if(!areaApplies(area))continue;
-      if(type==="AAF"&&!lowValueEligible)continue;
+      if(type==="107"&&!lowValueEligible)continue;
       found.push({direction:d,area,type,additionalCode:additional||null,certificate:certificate||null,description:description||null,start,end:end||null,sourceCode});
+    }
+  }
+  for(const[sourceCode,items]of Object.entries(data.ratesByCode||{})){
+    if(!applies(sourceCode,code))continue;
+    for(const item of items){
+      const[area,type,additional,certificate,conditionAmount,conditionCurrency,conditionUnit,orderNumber,expression,rate,currency,unit,legal,start,end]=item;
+      if(!areaApplies(area))continue;
+      if(type==="107"&&!lowValueEligible)continue;
+      found.push({direction:"import_rate",area,type,additionalCode:additional||null,certificate:certificate||null,description:null,start,end:end||null,sourceCode,rate:rate||null,expression:expression||null,currency:currency||null,unit:unit||null,legal:legal||null,orderNumber:orderNumber||null,conditionAmount:conditionAmount||null,conditionCurrency:conditionCurrency||null,conditionUnit:conditionUnit||null});
     }
   }
   const unique=new Map();
   for(const item of found){
-    const key=JSON.stringify([item.direction,item.area,item.type,item.additionalCode,item.certificate,item.description,item.start,item.end]);
+    const key=JSON.stringify([item.direction,item.area,item.type,item.additionalCode,item.certificate,item.description,item.start,item.end,item.rate,item.expression,item.currency,item.unit,item.legal]);
     const previous=unique.get(key);
     if(previous)previous.sourceCodes.push(item.sourceCode);
     else unique.set(key,{...item,sourceCodes:[item.sourceCode]});
@@ -50,10 +59,11 @@ export default async request=>{
   const grouped=new Map();
   for(const item of measures){
     const key=JSON.stringify([item.direction,item.type,item.area,item.additionalCode]);
-    const group=grouped.get(key)??{direction:item.direction,type:item.type,area:item.area,additionalCode:item.additionalCode,label:typeNames[item.type]||`TARIC-intézkedés ${item.type}`,validFrom:item.start||null,validTo:item.end||null,conditions:[]};
+    const group=grouped.get(key)??{direction:item.direction,type:item.type,area:item.area,additionalCode:item.additionalCode,label:typeNames[item.type]||`TARIC-intézkedés ${item.type}`,validFrom:item.start||null,validTo:item.end||null,rates:[],conditions:[]};
+    if(item.rate!==undefined&&item.rate!==null)group.rates.push({value:item.rate,expression:item.expression,currency:item.currency,unit:item.unit,legal:item.legal,orderNumber:item.orderNumber});
     if(item.description||item.certificate)group.conditions.push({certificate:item.certificate||null,description:item.description||null});
     grouped.set(key,group);
   }
-  const groups=[...grouped.values()].map(group=>({...group,conditions:[...new Map(group.conditions.map(c=>[JSON.stringify(c),c])).values()],conditionCount:new Set(group.conditions.map(c=>c.certificate||c.description)).size})).sort((a,b)=>priority(a.type)-priority(b.type)||a.type.localeCompare(b.type));
+  const groups=[...grouped.values()].map(group=>({...group,rates:[...new Map(group.rates.map(r=>[JSON.stringify(r),r])).values()],conditions:[...new Map(group.conditions.map(c=>[JSON.stringify(c),c])).values()],conditionCount:new Set(group.conditions.map(c=>c.certificate||c.description)).size})).sort((a,b)=>priority(a.type)-priority(b.type)||a.type.localeCompare(b.type));
   return new Response(JSON.stringify({status:"ok",dataDate:data.dataDate,code,origin:origin||null,count:groups.length,rawConditionCount:measures.length,groups,measures:measures.slice(0,250),truncated:measures.length>250,valueCheck:{valueHuf:valueHuf||null,ecbRate,valueEur:valueEur===null?null:Number(valueEur.toFixed(2)),traffic,lowValueEligible},warning:"Az alapnézet intézkedéstípusonként csoportosít. A részletes igazolási és mentességi feltételek lenyithatók."}),{headers});
 };
