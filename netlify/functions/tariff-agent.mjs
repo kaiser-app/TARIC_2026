@@ -20,9 +20,7 @@ export default async (request) => {
       status: 400,
       headers,
     });
-  const classificationSession = beginClassification(name, description);
-  const respond = (payload, init) => Response.json(finishClassification(classificationSession.id, payload), init);
-  const [index, nom] = await Promise.all([
+  const [index, nom, semanticIndex] = await Promise.all([
       readFile(
         new URL("../../data/generated/taric-index.json", import.meta.url),
         "utf8",
@@ -31,7 +29,13 @@ export default async (request) => {
         new URL("../../data/generated/nomenclature-rows.json", import.meta.url),
         "utf8",
       ).then(JSON.parse),
+      readFile(
+        new URL("../../data/generated/semantic-concepts-index.json", import.meta.url),
+        "utf8",
+      ).then(JSON.parse),
     ]);
+  const classificationSession = beginClassification(name, description, semanticIndex);
+  const respond = (payload, init) => Response.json(finishClassification(classificationSession.id, payload), init);
   const supplied = norm(name + " " + description);
   const compact = supplied.replace(/[^a-z0-9]/g, "");
   const isPhoneCase = /telefontok|telefon tok/.test(supplied);
@@ -303,11 +307,12 @@ export default async (request) => {
     valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
     traffic: supplied.includes("b2c") ? "b2c" : supplied.includes("b2b") ? "b2b" : null,
   };
-  const synonymText = isPhoneCase
-    ? " muanyagbol keszult mas aru tok tarto vedoburkolat "
-    : "";
+  const synonymText = [
+    isPhoneCase ? " muanyagbol keszult mas aru tok tarto vedoburkolat " : "",
+    classificationSession.facts.semanticSearchText || "",
+  ].join(" ");
   const ignored = new Set(["b2b","b2c","import","export","datum","vamertek","mennyiseg","szarmazas","irany","forgalom","harmadik","orszag"]);
-  const nameWords = norm(name).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
+  const nameWords = norm(name + " " + (classificationSession.facts.semanticTerms || "")).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
   const descriptionWords = norm(description + synonymText).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
   const words = [...new Set([...nameWords, ...descriptionWords])],
     scored = [];
@@ -460,6 +465,7 @@ export default async (request) => {
     clarificationOptions,
     factsUsed: suppliedFacts,
     dataDate: index.dataDate,
-    engine: "local-rules-v1",
+    engine: "semantic-index-v0p1",
+    semanticIndex: { version: semanticIndex.version, records: semanticIndex.recordCount },
   });
 };
