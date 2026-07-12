@@ -1,0 +1,97 @@
+import { tariffProfiles } from "./tariff-profiles.mjs";
+
+const valueAt = (object, path) => path.split(".").reduce((value, key) => value?.[key], object);
+
+function testCondition(facts, test) {
+  const value = valueAt(facts, test.path);
+  if (Object.hasOwn(test, "equals")) return value === test.equals;
+  if (test.includesAny) return Array.isArray(value) && test.includesAny.some((item) => value.includes(item));
+  if (test.materialIsEssential) return facts.materials?.length === 1 && facts.materials.includes(test.materialIsEssential)
+    || facts.inferredFacts?.attributes?.essentialMaterial === test.materialIsEssential;
+  if (test.exists) return value !== null && value !== undefined && value !== "";
+  return false;
+}
+
+function passesAny(facts, tests = []) { return tests.some((test) => testCondition(facts, test)); }
+function passesAll(facts, tests = []) { return tests.every((test) => testCondition(facts, test)); }
+
+function pathFor(codes, nomenclature) {
+  return codes.map((code) => {
+    const rows = nomenclature.rows.filter((row) => row.code === code).sort((a, b) => a.indent - b.indent);
+    const row = rows[0];
+    return { code, line: row?.indent ?? 0, description: row?.description ?? "" };
+  });
+}
+
+function clarification(profile, requirement, facts, dataDate) {
+  const materialLabels = { glass: "Üveg", concrete: "Beton", steel: "Vas vagy acél", plastic: "Műanyag", wood: "Fa", leather: "Bőr", textile: "Textil", cotton: "Pamut" };
+  const sourceOptions = requirement.id === "essential_material" && facts.materials?.length > 1
+    ? facts.materials.map((material) => [materialLabels[material] || material, `${materialLabels[material] || material} alkotja a fő tartószerkezetet vagy tartályfalat, és ez adja az áru lényeges jellegét`])
+    : (requirement.options || []);
+  return {
+    status: "clarification", code: null, confidence: "alacsony", path: [],
+    reasoning: `A(z) ${profile.id} termékprofil felismerhető, de a következő tarifális döntési tény nincs még bizonyítva: ${requirement.id}.`,
+    clarification: requirement.question,
+    clarificationOptions: sourceOptions.map(([label, appendText], index) => ({
+      id: `${profile.id}_${requirement.id}_${index + 1}`, label, appendText,
+    })),
+    factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  };
+}
+
+function footwearDecision(facts, nomenclature, dataDate) {
+  const a = facts.inferredFacts.attributes;
+  if (!a.leatherUpper) return null;
+  const baseCode = "6403000000";
+  const profile = { id: "leather_upper_footwear" };
+  const ask = (id, question, options, reasoning) => clarification(profile, { id, question, options }, facts, dataDate) && {
+    ...clarification(profile, { id, question, options }, facts, dataDate), reasoning,
+    path: pathFor([baseCode], nomenclature),
+  };
+  if (!a.leatherSole && !a.rubberPlasticSole) return ask("outer_sole_material", "Milyen anyagból készült a lábbeli talajjal érintkező külső talpa?", [["Gumi vagy műanyag", "külső talpa gumiból vagy műanyagból készült"], ["Bőr", "külső talpa bőrből készült"]], "A bőr felsőrész a 6403 ágat meghatározza; a következő alszámot a külső talp anyaga választja szét.");
+  if (!a.metalToeKnown) return ask("protective_metal_toe", "Van a lábbeliben beépített védő fém cipőorr?", [["Nincs", "nincs beépített védő fém cipőorra"], ["Van", "beépített védő fém cipőorral készült"]], "A 6403 ágon a beépített védő fém cipőorr önálló alszámot képez.");
+  if (a.metalToe) return { status: "classified", code: "6403400000", confidence: "magas", path: pathFor([baseCode, "6403400000"], nomenclature), reasoning: "GRI 1 és 6: bőr felsőrészű lábbeli beépített védő fém cipőorral.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+  if (!a.ankleKnown) return ask("covers_ankle", "A lábbeli felsőrésze takarja a bokát?", [["Takarja", "a bokát takarja"], ["Nem takarja", "a bokát nem takarja"]], "Fém cipőorr hiányában a következő alszámot a bokát takaró kialakítás választja szét.");
+  const branch = a.leatherSole ? (a.coversAnkle ? "6403510000" : "6403590000") : (a.coversAnkle ? "6403910000" : "6403990000");
+  if (!a.insoleUnder24 && !a.insoleAtLeast24) return ask("insole_and_gender", "A talpbélés hossza 24 cm alatti, vagy legalább 24 cm-es férfi/női lábbeliről van szó?", [["24 cm alatti", "talpbélés hossza 24 cm-nél kisebb"], ["Legalább 24 cm, férfi", "talpbélés hossza legalább 24 cm, férfi lábbeli"], ["Legalább 24 cm, női", "talpbélés hossza legalább 24 cm, női lábbeli"]], "A 10 jegyű kódot a talpbélés hossza és legalább 24 cm esetén a férfi/női kivitel választja szét.");
+  let code;
+  if (a.leatherSole && a.coversAnkle) code = a.insoleUnder24 ? "6403511100" : a.mensFootwear ? "6403511500" : a.womensFootwear ? "6403511900" : null;
+  else if (a.leatherSole) code = a.insoleUnder24 ? "6403593100" : a.mensFootwear ? "6403593500" : a.womensFootwear ? "6403593900" : null;
+  else if (a.coversAnkle) code = a.insoleUnder24 ? "6403919100" : a.mensFootwear ? "6403919600" : a.womensFootwear ? "6403919800" : null;
+  else code = a.insoleUnder24 ? "6403993100" : a.mensFootwear ? "6403993600" : a.womensFootwear ? "6403993800" : null;
+  if (!code) return ask("gender", "Legalább 24 cm-es talpbélés esetén férfi vagy női lábbeliről van szó?", [["Férfi", "férfi lábbeli"], ["Női", "női lábbeli"]], "A 10 jegyű kódhoz a férfi/női kivitel szükséges.");
+  return { status: "classified", code, confidence: "magas", path: pathFor([baseCode, branch, code], nomenclature), reasoning: "GRI 1 és 6: a felsőrész, a külső talp, a fém cipőorr, a bokát takaró kialakítás, a talpbélés hossza és a férfi/női kivitel alapján.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+}
+
+export function decideByProfiles(facts, nomenclature, dataDate) {
+  if (facts.concepts?.includes("footwear")) {
+    const footwear = footwearDecision(facts, nomenclature, dataDate);
+    if (footwear) return footwear;
+  }
+  const candidates = tariffProfiles
+    .filter((profile) => !profile.conceptsAny || profile.conceptsAny.some((concept) => facts.concepts?.includes(concept)))
+    .filter((profile) => passesAll(facts, profile.factsAll || []))
+    .filter((profile) => !(profile.rejectIf || []).some((test) => testCondition(facts, test)))
+    .sort((a, b) => b.priority - a.priority);
+
+  for (const profile of candidates) {
+    const missing = (profile.required || []).find((requirement) => {
+      if (requirement.testAny) return !passesAny(facts, requirement.testAny);
+      return !testCondition(facts, requirement.test);
+    });
+    if (missing) return clarification(profile, missing, facts, dataDate);
+    return {
+      status: "classified", code: profile.result.code, confidence: "magas",
+      path: pathFor(profile.result.path, nomenclature), reasoning: profile.result.reasoning,
+      clarification: null, factsUsed: {
+        profile: profile.id, known: facts,
+        function: facts.inferredFacts?.functions || [],
+        construction: facts.inferredFacts?.attributes?.wireConstruction ? "acélsodrony" : facts.inferredFacts?.construction,
+        capacityLitres: facts.inferredFacts?.capacityLitres ?? null,
+        glassThicknessMm: facts.inferredFacts?.thicknessMm ?? null,
+      },
+      dataDate, engine: "profile-engine-v1",
+    };
+  }
+  return null;
+}

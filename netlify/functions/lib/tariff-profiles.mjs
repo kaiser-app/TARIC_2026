@@ -1,0 +1,71 @@
+export const tariffProfiles = [
+  {
+    id: "electric_household_knife", priority: 120,
+    conceptsAny: ["electric_knife", "kitchen_knife"],
+    factsAll: [{ path: "inferredFacts.attributes.electric", equals: true }],
+    result: { code: "8509800000", path: ["8509000000", "8509800000"],
+      reasoning: "GRI 1 és 6: a beépített elektromotorral működő háztartási kés elektromechanikus háztartási készülék." },
+  },
+  {
+    id: "sword_weapon", priority: 115, conceptsAny: ["sword"],
+    result: { code: "9307000000", path: ["9307000000"],
+      reasoning: "GRI 1: a felismert kard jellegű szálfegyvert a 9307 vámtarifaszám név szerint lefedi." },
+  },
+  {
+    id: "protective_phone_case", priority: 110, conceptsAny: ["phone_case"],
+    required: [
+      { id: "material", test: { path: "materials", includesAny: ["plastic"] },
+        question: "Milyen anyagból készült a telefontok fő teste?",
+        options: [["Műanyag / PVC / szilikon", "fő teste műanyagból készült"], ["Bőr", "fő teste bőrből készült"], ["Textil", "fő teste textilből készült"]] },
+      { id: "protective", test: { path: "inferredFacts.attributes.protective", equals: true },
+        question: "A tok elsődlegesen a telefon védelmére szolgál, vagy hordtáska/pénztárca jellegű?",
+        options: [["Védőtok", "elsődlegesen a telefon védelmére szolgáló tok"], ["Hordtáska / pénztárca", "hordtáska vagy pénztárca jellegű"]] },
+    ],
+    result: { code: "3926909790", path: ["3926000000", "3926900000", "3926909700", "3926909790"],
+      reasoning: "GRI 1 és 6: a műanyagból készült védő telefontok kész műanyag áru; nem telefonalkatrész és nem hordtáska." },
+  },
+  {
+    id: "cotton_tshirt", priority: 105, conceptsAny: ["tshirt"],
+    required: [{ id: "material", test: { path: "materials", includesAny: ["cotton"] },
+      question: "Milyen textilanyag adja a póló fő tömegét?",
+      options: [["Pamut", "fő anyaga pamut"], ["Műszál", "fő anyaga szintetikus szál"], ["Más textil", "fő anyaga más textil"]] }],
+    result: { code: "6109100010", path: ["6109000000", "6109100000", "6109100010"],
+      reasoning: "GRI 1 és 6: a T-ing jellegű kötött póló fő anyaga pamut." },
+  },
+  {
+    id: "glass_living_habitat", priority: 100, conceptsAny: ["aquarium", "terrarium"],
+    required: [{ id: "essential_material", test: { path: "materials", materialIsEssential: "glass" },
+      question: "Melyik anyag alkotja a terrárium vagy akvárium fő tartályfalait és adja a lényeges jellegét?",
+      options: [["Üveg", "fő tartályfalai üvegből készültek, az üveg adja a lényeges jellegét"], ["Műanyag", "fő tartályfalai műanyagból készültek, a műanyag adja a lényeges jellegét"], ["Más anyag", "más anyag adja a fő tartály és az áru lényeges jellegét"]] }],
+    result: { code: "7013990000", path: ["7013000000", "7013990000"],
+      reasoning: "GRI 1, 3 b) és 6: az összetett élőlény-tartó áru lényeges jellegét az üvegtartály adja; a tető, fedél és világítás kiegészítő elem." },
+  },
+  {
+    id: "steel_wire_animal_enclosure", priority: 100, conceptsAny: ["cage"],
+    required: [
+      { id: "material", test: { path: "materials", includesAny: ["steel"] }, question: "Milyen anyagból készült a kalitka vagy ketrec fő teherviselő rácsa?",
+        options: [["Vas vagy acél", "fő teherviselő rácsa vasból vagy acélból készült"], ["Műanyag", "fő teherviselő rácsa műanyagból készült"], ["Fa", "fő teherviselő rácsa fából készült"]] },
+      { id: "construction", test: { path: "inferredFacts.attributes.wireConstruction", equals: true }, question: "A fém főrész huzalból, sodronyból vagy drótból készült?",
+        options: [["Huzal / sodrony / drót", "fém főrésze huzalból, sodronyból vagy drótból készült"], ["Lemez vagy profil", "fém főrésze lemezből vagy profilból készült"]] },
+    ],
+    result: { code: "7326200090", path: ["7326000000", "7326200000", "7326200090"],
+      reasoning: "GRI 1 és 6: a kész állattartó áru fő szerkezete vas- vagy acélhuzalból készült." },
+  },
+  {
+    id: "fixed_knife", priority: 90, conceptsAny: ["hunting_knife", "kitchen_knife"],
+    rejectIf: [{ path: "inferredFacts.attributes.foldingBlade", equals: true }],
+    required: [{ id: "blade", testAny: [
+      { path: "inferredFacts.attributes.fixedBlade", equals: true },
+      { path: "concepts", includesAny: ["kitchen_knife"] },
+    ], question: "A kés pengéje mereven rögzített vagy összecsukható?",
+      options: [["Mereven rögzített", "mereven rögzített pengéjű"], ["Összecsukható", "összecsukható, nem mereven rögzített pengéjű"]] }],
+    result: { code: "8211920000", path: ["8211000000", "8211910000", "8211920000"],
+      reasoning: "GRI 1 és 6: a felismert kés mereven rögzített pengéjű, nem asztali és nem összecsukható kés." },
+  },
+  {
+    id: "folding_knife", priority: 95, conceptsAny: ["hunting_knife", "kitchen_knife"],
+    factsAll: [{ path: "inferredFacts.attributes.foldingBlade", equals: true }],
+    result: { code: "8211930000", path: ["8211000000", "8211910000", "8211930000"],
+      reasoning: "GRI 1 és 6: a kés nem mereven rögzített, összecsukható pengéjű." },
+  },
+];

@@ -178,3 +178,31 @@ if (pvcPhoneCase.status === "clarification" || pvcPhoneCase.clarification)
 if (!pvcPhoneCase.factsUsed?.extracted?.materials?.includes("plastic"))
   throw new Error("A PVC anyagot nem normalizálta műanyagként.");
 console.log("OK telefontok + PVC-ből + ütésálló funkció → 3926909790, kérdés nélkül");
+
+if (pvcPhoneCase.engine !== "profile-engine-v1")
+  throw new Error(`A telefontok még nem az általános profilmotoron fut: ${pvcPhoneCase.engine}`);
+
+const incompleteCaseResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "telefontok", description: "PVC-ből készült" })
+}));
+const incompleteCase = await incompleteCaseResponse.json();
+if (incompleteCase.status !== "clarification" || !/védelmére|hordtáska|pénztárca/i.test(incompleteCase.clarification || ""))
+  throw new Error(`A hiányzó funkcióra nem konkrét kérdés érkezett: ${incompleteCase.clarification}`);
+if (/melyik további jellemző|tarifális ág/i.test(incompleteCase.clarification || ""))
+  throw new Error("A kérdéskapu absztrakt tarifális kérdést tett fel.");
+console.log("OK hiányos telefontok → konkrét funkciókérdés");
+
+for (const [label, result] of [["pamut póló", tshirt], ["pallós", sword], ["akvárium", aquarium], ["kalitka", cage], ["terrárium", indexedTerrarium]]) {
+  if (result.engine !== "profile-engine-v1") throw new Error(`${label} nem az általános profilmotoron fut: ${result.engine}`);
+}
+console.log("OK korábbi termékesetek → általános profilmotor");
+
+const footwearResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "bőr bakancs", description: "bőr felsőrész, gumitalp, nincs fém cipőorr, talpbélés hossza legalább 24 cm, férfi lábbeli" })
+}));
+const footwear = await footwearResponse.json();
+if (footwear.code !== "6403919600" || footwear.engine !== "profile-engine-v1")
+  throw new Error(`A bőr bakancs nem az általános profilmotoron osztályozódott: ${footwear.code}, ${footwear.engine}`);
+console.log("OK bőr bakancs → általános profilmotor → 6403919600");

@@ -9,6 +9,12 @@ const normalize = (value) => String(value || "")
   .trim();
 
 const conceptTerms = {
+  phone_case: ["telefontok", "telefon tok", "mobiltelefontok", "mobil telefon tok", "phone case"],
+  tshirt: ["polo", "t shirt", "tshirt"],
+  hunting_knife: ["vadaszkes", "vadasz kes"],
+  kitchen_knife: ["konyhakes", "konyhai kes", "szakacskes", "szakacs kes"],
+  electric_knife: ["elektromoskes", "elektromos kes", "villanykes", "motoros kes"],
+  footwear: ["bakancs", "cipo", "surrano", "topanka", "labbeli"],
   terrarium: ["terrarium", "allattarto terrarium", "novenyterrarium"],
   cage: ["kalitka", "madarkalitka", "allatketrec", "ketrec", "bird cage", "animal cage"],
   aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
@@ -76,11 +82,13 @@ function dictionaryMaterials(matches) {
 export function analyzeProductInput(name, description, semanticIndex) {
   const combinedText = [name, description].filter(Boolean).join(" ").trim();
   const productTerms = [];
+  const concepts = [];
   let canonicalProduct = null;
   for (const [concept, terms] of Object.entries(conceptTerms)) {
     const matches = terms.filter((term) => containsTerm(combinedText, term));
     if (matches.length) {
       canonicalProduct = concept;
+      concepts.push(concept);
       productTerms.push(...matches);
     }
   }
@@ -101,6 +109,7 @@ export function analyzeProductInput(name, description, semanticIndex) {
     normalizedText: normalize(combinedText),
     productTerms: [...new Set(productTerms)],
     canonicalProduct,
+    concepts: [...new Set(concepts)],
     materials: [...new Set(materials)],
     semanticIndexVersion: semanticIndex?.version || null,
     semanticMatches: matches.map((item) => ({ term: item.t, relevance: item.r, category: item.c })),
@@ -112,6 +121,31 @@ export function analyzeProductInput(name, description, semanticIndex) {
       productType: conceptKnowledge[canonicalProduct]?.productType || dictionaryCategories[0] || null,
       construction: /acel\s*(?:sodrony|huzal)/.test(normalize(combinedText)) ? "acélhuzalból vagy acélsodronyból készült" : null,
       capacityLitres: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\b/)?.[1] ?? null,
+      thicknessMm: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*mm\b/)?.[1] ?? null,
+      attributes: {
+        protective: /vedo|vedelem|boritas|burkolat|utesallo|utesved|karcallo|vizallo|porallo|leejtes|razkodasallo|shockproof|impact resistant/.test(normalize(combinedText)),
+        electric: /elektromos|villany|motoros|beepitett elektromotor/.test(normalize(combinedText)),
+        foldingBlade: /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(normalize(combinedText)),
+        fixedBlade: /rogzitett penge|fix penge|merev penge|merevpenge/.test(normalize(combinedText)) ||
+          (/(?:rozsdamentes )?acel/.test(normalize(combinedText)) && /\b\d+(?:[.,]\d+)?\s*mm\b/.test(normalize(combinedText)) && !/osszecsukhato|behajthato|zsebkes/.test(normalize(combinedText))),
+        wireConstruction: /(?:acel|vas|fem)\s*(?:sodrony|huzal)|drot/.test(normalize(combinedText)),
+        leatherSole: /bor (?:kulso )?talp|bortalp/.test(normalize(combinedText)),
+        rubberPlasticSole: /gumi|muanyag (?:kulso )?talp|gumitalp/.test(normalize(combinedText)),
+        metalToe: /fem (?:vedo )?cipoo?rr|fem labujjvedo/.test(normalize(combinedText)) && !/nincs|nelkul/.test(normalize(combinedText)),
+        metalToeKnown: /fem (?:vedo )?cipoo?rr|fem labujjvedo|nincs fem|fem nelkul/.test(normalize(combinedText)),
+        coversAnkle: (/bokat takar|bakancs/.test(normalize(combinedText))) && !/nem takar/.test(normalize(combinedText)),
+        ankleKnown: /bokat takar|bokat nem takar|bokanal alacsony|bakancs/.test(normalize(combinedText)),
+        leatherUpper: /bor fels|borbol keszult fels|bor felsoresz/.test(normalize(combinedText)) || (concepts.includes("footwear") && materials.includes("leather")),
+        insoleUnder24: /24 cm nel kisebb/.test(normalize(combinedText)),
+        insoleAtLeast24: /legalabb 24 cm/.test(normalize(combinedText)),
+        mensFootwear: /ferfi labbeli|ferfi cipo|ferfi bakancs/.test(normalize(combinedText)),
+        womensFootwear: /noi labbeli|noi cipo|noi bakancs/.test(normalize(combinedText)),
+        finishedGood: /kesztermek|kesz aru|hasznalatra kesz|onalloan hasznalhato/.test(normalize(combinedText)),
+        essentialMaterial: /uveg.{0,50}(?:lenyeges jelleget ad|adja a lenyeges jelleget|fo tartalyfal)/.test(normalize(combinedText)) ? "glass"
+          : /beton.{0,50}(?:lenyeges jelleget ad|adja a lenyeges jelleget|fo tartoszerkezet)/.test(normalize(combinedText)) ? "concrete"
+          : /muanyag.{0,50}(?:lenyeges jelleget ad|adja a lenyeges jelleget|fo tartalyfal)/.test(normalize(combinedText)) ? "plastic"
+          : null,
+      },
     },
   };
 }
