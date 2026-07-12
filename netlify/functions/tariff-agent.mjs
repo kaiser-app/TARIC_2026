@@ -36,7 +36,7 @@ export default async (request) => {
   const compact = supplied.replace(/[^a-z0-9]/g, "");
   const isPhoneCase = /telefontok|telefon tok/.test(supplied);
   const isPlasticLike = /szilikon|muanyag|tpu|gumi/.test(supplied);
-  const hasProtectiveFunction = /vedo|vedelem|boritas|burkolat/.test(supplied);
+  const hasProtectiveFunction = /vedo|vedelem|boritas|burkolat|utesallo|utesved|karcallo|vizallo|porallo|leejtes|razkodasallo|shockproof|impact resistant/.test(supplied);
   if (isPhoneCase && isPlasticLike && hasProtectiveFunction) {
     const codes = ["3926000000", "3926900000", "3926909700", "3926909790"];
     const path = codes.map((code) => {
@@ -250,8 +250,11 @@ export default async (request) => {
   const suppliedFacts = {
     materials: ["pamut", "gyapjú", "selyem", "len", "szilikon", "gumi", "műanyag", "rozsdamentes acél", "acél", "fém", "csont", "bőr", "fa", "üveg", "textil"]
       .filter((value) => supplied.includes(norm(value))),
-    functions: ["védő", "burkoló", "vadászat", "konyhai", "háztartási", "díszítő", "ipari", "ruházati", "szállítás", "tárolás"]
-      .filter((value) => supplied.includes(norm(value))),
+    functions: [...new Set([
+      ...["védő", "burkoló", "vadászat", "konyhai", "háztartási", "díszítő", "ipari", "ruházati", "szállítás", "tárolás"]
+        .filter((value) => supplied.includes(norm(value))),
+      ...(hasProtectiveFunction ? ["védő"] : []),
+    ])],
     quantity: supplied.match(/\b(\d+)\s*db\b/)?.[1] ?? null,
     valueHuf: supplied.match(/\b(\d[\d ]*)\s*ft\b/)?.[1]?.replace(/ /g, "") ?? null,
     traffic: supplied.includes("b2c") ? "b2c" : supplied.includes("b2b") ? "b2b" : null,
