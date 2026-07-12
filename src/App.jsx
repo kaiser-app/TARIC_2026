@@ -13,6 +13,7 @@ export default function App() {
   const [lang, setLang] = useState("hu"), [code, setCode] = useState(""), [product, setProduct] = useState(""), [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false), [error, setError] = useState(""), [result, setResult] = useState(null), [measures, setMeasures] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [topPanel,setTopPanel]=useState(null),[adminToken,setAdminToken]=useState(""),[adminData,setAdminData]=useState(null),[adminError,setAdminError]=useState("");
   const [options, setOptions] = useState({ traffic: "b2b", date: new Date().toISOString().slice(0, 10), value: "100000", quantity: "1", unit: "db", additions: "0", origin: "CN", direction: "import", dispatch: "", destination: "Magyarország", ecb: "354.13", lineCount: "1" });
   const [health, setHealth] = useState(null);
   useEffect(() => { getJson("/api/health").then(setHealth).catch(() => setHealth(null)); }, []);
@@ -45,6 +46,7 @@ export default function App() {
     setQuery(next);
     runClassification(next);
   };
+  const loadAdmin=async()=>{setAdminError("");try{setAdminData(await getJson("/api/v1/admin/metrics",{headers:{"x-admin-token":adminToken}}));}catch(error){setAdminError(error.message);}};
   const calculation = useMemo(() => {
     if (!measures?.groups?.length) return null;
     const invoiceValue = Number(options.value) || 100000;
@@ -66,7 +68,9 @@ export default function App() {
   }, [measures, options]);
 
   return <main>
-    <nav><div className="brand"><ShieldCheck />TARIC 2026</div><div className="language"><button className={lang === "hu" ? "active" : ""} onClick={() => setLang("hu")}>HU</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div></nav>
+    <nav><div className="brand"><ShieldCheck />TARIC 2026</div><div className="nav-actions"><button onClick={()=>setTopPanel(topPanel==="integration"?null:"integration")}>Integráció</button><button onClick={()=>setTopPanel(topPanel==="settings"?null:"settings")}>Beállítások</button><div className="language"><button className={lang === "hu" ? "active" : ""} onClick={() => setLang("hu")}>HU</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div></div></nav>
+    {topPanel==="integration"&&<section className="top-drawer"><h2>Integrációs interfész</h2><p>A verziózott REST API segítségével külső vámkezelő, ERP- és webáruházi rendszerek kapcsolódhatnak a TARIC szolgáltatáshoz.</p><div className="integration-links"><a href="/api/v1/openapi.json" target="_blank" rel="noreferrer">OpenAPI-specifikáció megnyitása</a><a href="/api/v1/openapi.json" download="taric-2026-openapi.json">OpenAPI JSON letöltése</a></div><pre>{`POST /api/v1/classify-and-calculate\nX-API-Key: <kulcs>\nContent-Type: application/json\n\n{\n  "customsDate": "2026-07-18",\n  "product": { "name": "vadászkés", "quantity": 1, "unit": "db" },\n  "trade": { "originCountry": "CN", "invoiceValue": 100000, "currency": "HUF" }\n}`}</pre></section>}
+    {topPanel==="settings"&&<section className="top-drawer"><h2>API-beállítások és Render-használat</h2><div className="admin-login"><input type="password" value={adminToken} onChange={e=>setAdminToken(e.target.value)} placeholder="Admin-token"/><button onClick={loadAdmin}>Adatok betöltése</button></div>{adminError&&<p className="question">{adminError}</p>}{adminData&&<><div className="metrics-grid"><article><b>{adminData.usage.requests.toLocaleString("hu-HU")}</b><span>API-kérés</span></article><article><b>{adminData.render.estimatedBandwidthGb} GB</b><span>Becsült API-válaszforgalom / 5 GB</span></article><article><b>{adminData.usage.rateLimited}</b><span>Korlátozott kérés</span></article><article><b>{Math.floor(adminData.uptimeSeconds/60)} perc</b><span>Futásidő</span></article></div><h3>Aktív limitek</h3><p>{adminData.limits.perMinute}/perc · {adminData.limits.perDay}/nap · {adminData.limits.perMonth}/hó · {adminData.limits.maxConcurrent} párhuzamos kérés · {(adminData.limits.maxRequestBytes/1024).toFixed(0)} KB kérésméret</p><small>A tartós limiteket a Render környezeti változóiban kell rögzíteni; a következő verzióban innen is módosíthatók lesznek.</small></>}</section>}
     <section className="hero"><div><p className="eyebrow">{t.eye}</p><h1>{t.title}</h1><p className="lead">{t.lead}</p></div><div className="code-card"><span>{t.code}</span><strong>{grouped(code)}</strong><small>HS / KN / TARIC</small></div></section>
     <section className="panel agent-panel"><form className="agent-form" onSubmit={submit}>
       <label>Termék neve *<input value={product} onChange={(e) => setProduct(e.target.value)} placeholder="pl. lítium-ion akkumulátoros csavarbehajtó" /></label>
