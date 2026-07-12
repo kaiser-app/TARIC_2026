@@ -146,3 +146,20 @@ const dictionaryCageFacts = analyzeProductInput("ketrec", "fémből készült", 
 if (!dictionaryCageFacts.productTerms.some((value) => String(value).toLowerCase().includes("kalitka")))
   throw new Error("A szótári szinonima-index nem kapcsolta a ketrecet a kalitkához.");
 console.log("OK V0P1 szinonima-index: ketrec → kalitka");
+
+
+const indexedTerrariumResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "TERRÁRIUM", description: "8 MM-ES ÜVEGBŐL KÉSZÜLT, TETŐBEL ÉS VILÁGÍTÁSSAL, 200 LITERES" })
+}));
+const indexedTerrarium = await indexedTerrariumResponse.json();
+if (indexedTerrarium.code !== "7013990000")
+  throw new Error(`Várt 7013990000, kapott: ${indexedTerrarium.code}`);
+if (indexedTerrarium.status === "clarification")
+  throw new Error("A teljes üvegterráriumnál a feldolgozás indokolatlanul pontosító kérdést adott.");
+if (!indexedTerrarium.factsUsed?.extracted?.semanticMatches?.some((item) => item.term === "terrárium"))
+  throw new Error("A V0P1 index nem szolgáltatta a terrárium fogalmi rekordját.");
+if (indexedTerrarium.factsUsed?.capacityLitres !== "200" || indexedTerrarium.factsUsed?.glassThicknessMm !== "8")
+  throw new Error("A terrárium méret- vagy kapacitásadata nem került feldolgozásra.");
+console.log("OK V0P1 terrárium + üveg + tető + világítás + 200 liter → 7013990000");

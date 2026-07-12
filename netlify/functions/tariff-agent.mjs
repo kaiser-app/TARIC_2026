@@ -113,9 +113,11 @@ export default async (request) => {
       dataDate: index.dataDate, engine: "semantic-facts-v1",
     });
   }
-  const isGlassAquarium = classificationSession.facts.canonicalProduct === "aquarium" &&
-    classificationSession.facts.materials.includes("glass");
-  if (isGlassAquarium) {
+  const glassHabitatType = ["aquarium", "terrarium"].includes(classificationSession.facts.canonicalProduct)
+    ? classificationSession.facts.canonicalProduct
+    : null;
+  const isGlassHabitat = glassHabitatType && classificationSession.facts.materials.includes("glass");
+  if (isGlassHabitat) {
     const codes = ["7013000000", "7013990000"];
     const path = codes.map((code) => {
       const row = nom.rows.find((item) => item.code === code);
@@ -123,15 +125,15 @@ export default async (request) => {
     });
     return respond({
       status: "classified", code: "7013990000", confidence: "magas", path,
-      reasoning: "GRI 1, 3 b) és 6: a megnevezés és a leírás együtt egy kész, 100 literes üvegakváriumot azonosít. A fedél és a beépített világítás kiegészítő elemek; az összetett áru lényeges jellegét a víz és élőlények tartására szolgáló üvegtartály adja.",
+      reasoning: `GRI 1, 3 b) és 6: a megnevezés, a V0P1 fogalomtárból felismert rendeltetés és a leírás együtt kész üveg${glassHabitatType === "terrarium" ? "terráriumot" : "akváriumot"} azonosít. A tető/fedél és a világítás kiegészítő elemek; az összetett áru lényeges jellegét az élőlények tartására szolgáló üvegtartály adja.`,
       clarification: null,
       factsUsed: {
-        product: "akvárium", material: "üveg", function: "vízi élőlények tartása",
+        product: glassHabitatType === "terrarium" ? "terrárium" : "akvárium", material: "üveg", function: classificationSession.facts.inferredFacts.functions,
         capacityLitres: supplied.match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\b/)?.[1] ?? null,
         glassThicknessMm: supplied.match(/\b(\d+(?:[.,]\d+)?)\s*mm\b/)?.[1] ?? null,
-        cover: /fedel/.test(supplied), builtInLighting: /beepitett vilagitas|vilagitassal/.test(supplied),
+        cover: /fedel|teto/.test(supplied), builtInLighting: /beepitett vilagitas|vilagitassal/.test(supplied),
       },
-      dataDate: index.dataDate, engine: "local-rules-v2",
+      dataDate: index.dataDate, engine: "semantic-index-v0p1",
     });
   }
   const isSword = classificationSession.facts.canonicalProduct === "sword";
