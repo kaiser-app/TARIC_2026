@@ -96,3 +96,18 @@ if (aquarium.status === "clarification")
 if (aquarium.factsUsed?.capacityLitres !== "100" || aquarium.factsUsed?.glassThicknessMm !== "6")
   throw new Error("A méret- vagy kapacitásadat kinyerése hibás.");
 console.log("OK 100 literes, 6 mm-es üvegakvárium világítással → 7013990000");
+
+
+const cageResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "KALITKA", description: "NÉGYZETHÁLÓS ACÉL KALITKA, ACÉLSODRONYBÓL, 100 LITERES FEDÉLLEL, AJTÓVAL, ETETŐVEL ÉS BEÉPÍTETT VILÁGÍTÁSSAL" })
+}));
+const cage = await cageResponse.json();
+if (cage.code !== "7326200090")
+  throw new Error(`Várt 7326200090, kapott: ${cage.code}`);
+if (cage.status === "clarification")
+  throw new Error("A kalitka implicit rendeltetését vagy az acélsodrony szerkezetet nem ismerte fel.");
+if (!cage.factsUsed?.function?.length || cage.factsUsed?.construction !== "acélsodrony")
+  throw new Error("A szemantikai ténykinyerés hiányos.");
+console.log("OK acélsodrony kalitka → 7326200090");
