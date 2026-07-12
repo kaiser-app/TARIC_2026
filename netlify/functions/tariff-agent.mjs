@@ -59,6 +59,30 @@ export default async (request) => {
       dataDate: index.dataDate,
     });
   }
+  const isCottonTshirt =
+    /pamut/.test(supplied) && /polo|t-shirt|tshirt|t ing/.test(supplied);
+  if (isCottonTshirt) {
+    const codes = ["6109000000", "6109100000", "6109100010"];
+    const path = codes.map((code) => {
+      const rows = nom.rows.filter((item) => item.code === code);
+      const row = rows.sort((a, b) => a.indent - b.indent)[0];
+      return { code, line: row?.indent ?? 0, description: row?.description ?? "" };
+    });
+    return Response.json({
+      status: "classified",
+      code: "6109100010",
+      confidence: "magas",
+      path,
+      reasoning:
+        "GRI 1 és 6: a póló a 6109 vámtarifaszám szerinti T-ing; a pamut anyag a 610910 alszámot, a T-ing megnevezés pedig a 6109100010 TARIC-kódot határozza meg.",
+      clarification: null,
+      factsUsed: {
+        product: "póló",
+        material: "pamut",
+      },
+      dataDate: index.dataDate,
+    });
+  }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
   const hasSteelBlade = /rozsdamentes acel|acelpenge|acel penge/.test(supplied);
   const isFixedBlade = !/osszecsukhato|behajthato|zsebkes/.test(supplied);
@@ -90,7 +114,7 @@ export default async (request) => {
     });
   }
   const suppliedFacts = {
-    materials: ["szilikon", "műanyag", "rozsdamentes acél", "acél", "csont", "bőr", "textil"]
+    materials: ["pamut", "gyapjú", "selyem", "len", "szilikon", "műanyag", "rozsdamentes acél", "acél", "csont", "bőr", "textil"]
       .filter((value) => supplied.includes(norm(value))),
     functions: ["védő", "vadászat", "konyhai", "díszítő", "ipari"]
       .filter((value) => supplied.includes(norm(value))),
