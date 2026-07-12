@@ -39,7 +39,7 @@ export default async (request) => {
   const supplied = norm(name + " " + description);
   const compact = supplied.replace(/[^a-z0-9]/g, "");
   const isPhoneCase = /telefontok|telefon tok/.test(supplied);
-  const isPlasticLike = /szilikon|muanyag|tpu|gumi/.test(supplied);
+  const isPlasticLike = /szilikon|muanyag|tpu|gumi|pvc|polivinil.?klorid/.test(supplied);
   const hasProtectiveFunction = /vedo|vedelem|boritas|burkolat|utesallo|utesved|karcallo|vizallo|porallo|leejtes|razkodasallo|shockproof|impact resistant/.test(supplied);
   if (isPhoneCase && isPlasticLike && hasProtectiveFunction) {
     const codes = ["3926000000", "3926900000", "3926909700", "3926909790"];
@@ -351,7 +351,7 @@ export default async (request) => {
       clarification: mixedMaterial
         ? "Több anyagot is felismertem. Melyik anyagból készült a termék fő tartószerkezete vagy tartályrésze, amely az áru lényeges jellegét adja?"
         : knownFunction
-          ? "A megnevezésből a rendeltetést, a leírásból az anyagot is felismertem. Melyik további jellemző választja szét a megjelenített tarifális ágakat?"
+          ? "A termék kész, önállóan használható áru, egy másik termék alkatrésze, vagy további feldolgozásra szánt alapanyag?"
           : knownMaterials.length
             ? "Az anyagot már felismertem. Mi az áru pontos rendeltetése vagy termékfajtája, amely a tarifális ágat eldönti?"
             : "Miből készült az áru, mi a funkciója és milyen feldolgozottsági állapotban van?",
