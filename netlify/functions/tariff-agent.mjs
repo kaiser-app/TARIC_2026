@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { readFile } from "node:fs/promises";
 const norm = (s) =>
     String(s || "")
@@ -223,62 +222,43 @@ export default async (request) => {
         dataDate: index.dataDate,
       });
   }
-  let parsed;
-  try {
-    const c = await new OpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [{
-        role: "user",
-        content:
-          prompt +
-          `\nMÁR MEGADOTT, ÚJRA NEM KÉRDEZHETŐ TÉNYEK: ${JSON.stringify(suppliedFacts)}. A teljes eredeti leírást is használd.`,
-      }],
-      temperature: 0,
-      max_tokens: 700,
+  // Helyi, adatbázis-vezérelt tartalék helyett ez az elsődleges döntési réteg.
+  // Nem talál ki kódot: a NAV nómenklatúra legjobb ágait mutatja, és csak a
+  // következő hierarchiaszintet eldöntő terméktulajdonságra kérdez rá.
+  const candidates = [];
+  const seen = new Set();
+  for (const row of scored) {
+    if (seen.has(row.vtsz)) continue;
+    seen.add(row.vtsz);
+    const nomRow = nom.rows.find((item) => item.code === row.vtsz);
+    candidates.push({
+      code: row.vtsz,
+      line: nomRow?.indent ?? 0,
+      description: row.descriptionHu || nomRow?.description || "",
+      score: row.score,
     });
-    parsed = JSON.parse(c.choices[0].message.content);
-  } catch (e) {
-    return new Response(
-      JSON.stringify({
-        status: "gateway_unavailable",
-        message: "Az AI tarifálási réteg nem érhető el.",
-        detail: e.message,
-      }),
-      { status: 503, headers },
-    );
+    if (candidates.length === 5) break;
   }
-  if (parsed.code) {
-    const code = String(parsed.code).replace(/\D/g, "");
-    const exact = nom.rows.filter((r) => r.code === code);
-    if (!exact.length)
-      return new Response(
-        JSON.stringify({
-          status: "invalid_model_code",
-          message: "A modell kódja nincs a hiteles nómenklatúrában.",
-        }),
-        { status: 422, headers },
-      );
-    const significant = code.replace(/0+$/, ""),
-      hasChildren = nom.rows.some(
-        (r) =>
-          r.code !== code &&
-          r.code.startsWith(significant) &&
-          r.indent > Math.min(...exact.map((x) => x.indent)),
-      );
-    if (hasChildren)
-      return Response.json({
-        status: "clarification",
-        code: null,
-        confidence: "alacsony",
-        path: parsed.path || [],
-        reasoning: "A kiválasztott kód tovább bontható a nómenklatúrában.",
-        clarification:
-          "Pontosítsd az áru fajtáját, anyagát, funkcióját vagy feldolgozottságát a következő vonalszint kiválasztásához.",
-      });
-    parsed.code = code;
+  const topPrefixes = [...new Set(candidates.map((item) => item.code.slice(0, 4)))];
+  let clarification;
+  if (!suppliedFacts.materials.length) {
+    clarification = "Milyen anyagból készült az áru? Ha több anyagból áll, melyik adja a lényeges jellegét?";
+  } else if (!suppliedFacts.functions.length) {
+    clarification = "Mi az áru elsődleges funkciója vagy felhasználási célja?";
+  } else {
+    clarification = "Milyen a termék pontos fajtája, kialakítása és feldolgozottsági állapota?";
   }
-  return new Response(JSON.stringify({ ...parsed, dataDate: index.dataDate }), {
-    headers,
+  return Response.json({
+    status: "clarification",
+    code: null,
+    confidence: "alacsony",
+    path: candidates.map(({ score, ...item }) => item),
+    reasoning: topPrefixes.length
+      ? `A NAV nómenklatúrában a legerősebb jelölt ágak: ${topPrefixes.join(", ")}. A végkódhoz további, tarifálást eldöntő termékjellemző szükséges.`
+      : "A megadott leírásból nem választható ki biztonságosan nómenklatúra-ág.",
+    clarification,
+    factsUsed: suppliedFacts,
+    dataDate: index.dataDate,
+    engine: "local-rules-v1",
   });
 };
