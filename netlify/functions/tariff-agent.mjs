@@ -83,6 +83,16 @@ export default async (request) => {
       dataDate: index.dataDate,
     });
   }
+  const isSamuraiSword = /szamurajkard|szamurajkes|katana/.test(compact) || /szamuraj\s+kard/.test(supplied);
+  if (isSamuraiSword) {
+    const row = nom.rows.find((item) => item.code === "9307000000");
+    return Response.json({
+      status: "classified", code: "9307000000", confidence: "magas",
+      path: [{ code: "9307000000", line: row?.indent ?? 0, description: row?.description ?? "Kard, tőr, szurony, lándzsa és hasonló fegyver" }],
+      reasoning: "GRI 1: a szamurájkard (katana) kard jellegű szálfegyver, amelyet a 9307 vámtarifaszám név szerint lefed.",
+      clarification: null, factsUsed: { product: "szamurájkard / katana", type: "kard" }, dataDate: index.dataDate, engine: "local-rules-v1",
+    });
+  }
   const isHuntingKnife = /vadaszkes|vadasz kes/.test(supplied);
   const isKitchenKnife = /konyhaikes|konyhakes|szakacskes/.test(compact) || /konyhai\s+kes|szakacs\s+kes/.test(supplied);
   const isElectricKnife = /elektromoskes|villanykes|motoroskes/.test(compact) || ((isKitchenKnife || /\bkes\b/.test(supplied)) && /elektromos|villany|beepitett elektromotor|motoros/.test(supplied));
@@ -221,9 +231,12 @@ export default async (request) => {
   for (const r of index.records) {
     if (!r.descriptionHu) continue;
     const d = norm(r.descriptionHu);
-    let score = 0;
+    let score = 0;const descriptionTokens=d.split(/[^a-z0-9]+/).filter(Boolean);
     let nameMatches=0;
-    for (const w of words) if (d.includes(w)) {const inName=nameWords.includes(w);score += w.length*(inName?4:1);if(inName)nameMatches++;}
+    for (const w of words) {
+      const matched=descriptionTokens.includes(w)||(w.length>=6&&descriptionTokens.some(token=>token.startsWith(w)));
+      if(matched){const inName=nameWords.includes(w);score += w.length*(inName?4:1);if(inName)nameMatches++;}
+    }
     if(nameWords.length && !nameMatches)continue;
     if (score) scored.push({ ...r, score });
   }
