@@ -39,7 +39,41 @@ const containsTerm = (text, term) => {
   return haystack.includes(` ${needle} `) || normalize(text).replace(/ /g, "").includes(needle.replace(/ /g, ""));
 };
 
-export function analyzeProductInput(name, description) {
+const ignoredDictionaryTerms = new Set(["anyag", "aru", "termek", "eszkoz", "keszulek", "szerkezet"]);
+const materialAliases = {
+  acel: "steel", vas: "steel", fem: "steel", "drot huzal": "steel",
+  uveg: "glass", beton: "concrete", bor: "leather", muanyag: "plastic",
+  gumi: "plastic", szilikon: "plastic", fa: "wood", textil: "textile",
+  pamut: "cotton", gyapju: "textile", selyem: "textile", len: "textile",
+};
+
+function semanticMatches(name, combinedText, semanticIndex) {
+  if (!semanticIndex?.lookup || !semanticIndex?.records) return [];
+  const normalizedName = normalize(name);
+  const words = normalize(combinedText).split(" ").filter(Boolean);
+  const ids = new Set(semanticIndex.lookup[normalizedName] || []);
+  for (let size = Math.min(4, words.length); size >= 1 && ids.size < 8; size--) {
+    for (let start = 0; start + size <= words.length && ids.size < 8; start++) {
+      const term = words.slice(start, start + size).join(" ");
+      if (term.length < 4 || ignoredDictionaryTerms.has(term)) continue;
+      for (const id of semanticIndex.lookup[term] || []) ids.add(id);
+    }
+  }
+  return [...ids].map((id) => semanticIndex.records[id]).filter(Boolean)
+    .sort((a, b) => (a.r === "H" ? -1 : 0) - (b.r === "H" ? -1 : 0)).slice(0, 8);
+}
+
+function dictionaryMaterials(matches) {
+  const found = [];
+  for (const match of matches) for (const raw of String(match.m || "").split(";")) {
+    const key = normalize(raw);
+    const mapped = materialAliases[key];
+    if (mapped) found.push(mapped);
+  }
+  return [...new Set(found)];
+}
+
+export function analyzeProductInput(name, description, semanticIndex) {
   const combinedText = [name, description].filter(Boolean).join(" ").trim();
   const productTerms = [];
   let canonicalProduct = null;
@@ -50,9 +84,16 @@ export function analyzeProductInput(name, description) {
       productTerms.push(...matches);
     }
   }
+  const matches = semanticMatches(name, combinedText, semanticIndex);
   const materials = [];
   for (const [material, terms] of Object.entries(materialTerms))
     if (terms.some((term) => containsTerm(combinedText, term))) materials.push(material);
+  materials.push(...dictionaryMaterials(matches));
+  const dictionaryFunctions = [...new Set(matches.map((item) => item.f).filter(Boolean))];
+  const dictionaryCategories = [...new Set(matches.map((item) => item.c).filter(Boolean))];
+  const dictionaryTerms = [...new Set(matches.flatMap((item) => [item.t, ...(item.s || [])]).filter(Boolean))];
+  if (!canonicalProduct && matches.length) canonicalProduct = matches[0].n || normalize(matches[0].t);
+  productTerms.push(...dictionaryTerms);
   return {
     originalName: String(name || "").trim(),
     originalDescription: String(description || "").trim(),
@@ -60,17 +101,23 @@ export function analyzeProductInput(name, description) {
     normalizedText: normalize(combinedText),
     productTerms: [...new Set(productTerms)],
     canonicalProduct,
-    materials,
+    materials: [...new Set(materials)],
+    semanticIndexVersion: semanticIndex?.version || null,
+    semanticMatches: matches.map((item) => ({ term: item.t, relevance: item.r, category: item.c })),
+    semanticTerms: dictionaryTerms.join(" "),
+    semanticSearchText: [...dictionaryTerms, ...dictionaryCategories, ...dictionaryFunctions].join(" "),
     inferredFacts: {
       ...(conceptKnowledge[canonicalProduct] || {}),
+      functions: [...new Set([...(conceptKnowledge[canonicalProduct]?.functions || []), ...dictionaryFunctions])],
+      productType: conceptKnowledge[canonicalProduct]?.productType || dictionaryCategories[0] || null,
       construction: /acel\s*(?:sodrony|huzal)/.test(normalize(combinedText)) ? "acélhuzalból vagy acélsodronyból készült" : null,
       capacityLitres: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\b/)?.[1] ?? null,
     },
   };
 }
 
-export function beginClassification(name, description) {
-  const facts = analyzeProductInput(name, description);
+export function beginClassification(name, description, semanticIndex) {
+  const facts = analyzeProductInput(name, description, semanticIndex);
   const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   sessions.set(id, { id, createdAt: new Date().toISOString(), status: "processing", facts });
   if (sessions.size > 1000) sessions.delete(sessions.keys().next().value);

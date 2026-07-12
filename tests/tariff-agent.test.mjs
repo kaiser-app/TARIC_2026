@@ -1,4 +1,6 @@
 import agent from "../netlify/functions/tariff-agent.mjs";
+import { readFile } from "node:fs/promises";
+import { analyzeProductInput } from "../netlify/functions/lib/classification-learning.mjs";
 const response = await agent(new Request("http://local/api/tariff-agent", {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -128,3 +130,19 @@ if (!/fő tartószerkezete|lényeges jellegét/.test(terrarium.clarification || 
 if (terrarium.clarificationOptions?.length !== 2)
   throw new Error("Az üveg és beton választási lehetőségei hiányoznak.");
 console.log("OK terrárium + üveg és beton → csak a lényeges jelleget tisztázza");
+
+
+const semanticIndex = JSON.parse(await readFile(new URL("../data/generated/semantic-concepts-index.json", import.meta.url), "utf8"));
+if (semanticIndex.version !== "V0P1" || semanticIndex.recordCount !== 2980)
+  throw new Error("A V0P1 szemantikai index verziója vagy rekordszáma hibás.");
+const claspFacts = analyzeProductInput("csat", "öv két részének összekapcsolására", semanticIndex);
+if (!claspFacts.inferredFacts.functions.some((value) => value.includes("összekapcsolására")))
+  throw new Error("A V0P1 indexből nem töltődött be a csat funkciója.");
+if (!claspFacts.semanticMatches.some((value) => value.term === "csat"))
+  throw new Error("A címszó-index nem találta meg a csat rekordját.");
+console.log("OK V0P1 index: csat → összekapcsolási funkció");
+
+const dictionaryCageFacts = analyzeProductInput("ketrec", "fémből készült", semanticIndex);
+if (!dictionaryCageFacts.productTerms.some((value) => String(value).toLowerCase().includes("kalitka")))
+  throw new Error("A szótári szinonima-index nem kapcsolta a ketrecet a kalitkához.");
+console.log("OK V0P1 szinonima-index: ketrec → kalitka");
