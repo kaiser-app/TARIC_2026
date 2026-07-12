@@ -67,11 +67,13 @@ export function finishClassification(sessionId, result) {
   session.status = result?.status || "unknown";
   session.resultCode = result?.code || null;
   session.finishedAt = new Date().toISOString();
-  if (result?.status === "classified" && result.code && result.confidence === "magas" && session.facts.canonicalProduct) {
-    for (const term of session.facts.productTerms) {
-      const key = `${session.facts.canonicalProduct}:${normalize(term)}:${result.code}`;
+  if (result?.status === "classified" && result.code && result.confidence === "magas") {
+    const learnedTerms = [...new Set([...session.facts.productTerms, session.facts.originalName].map(normalize).filter((term) => term.length >= 3))];
+    for (const term of learnedTerms) {
+      const concept = session.facts.canonicalProduct || null;
+      const key = `${concept || "unresolved"}:${term}:${result.code}`;
       const current = candidates.get(key) || {
-        term, canonicalProduct: session.facts.canonicalProduct, taricCode: result.code,
+        term, canonicalProduct: concept, taricCode: result.code,
         occurrences: 0, status: "candidate", firstSeenAt: new Date().toISOString(),
       };
       current.occurrences += 1;
