@@ -10,16 +10,16 @@ const page = await fetch(folderUrl, { headers: { "user-agent": userAgent } });
 if (!page.ok) throw new Error(`OpenKKK mappalista HTTP ${page.status}`);
 const html = await page.text();
 const refs = [];
-for (const match of html.matchAll(/"FileRef"\s*:\s*("(?:[^"\\]|\\.)*ev_torzsadatok_(\d{8})\.zip")/g)) {
-  refs.push({ ref: JSON.parse(match[1]), date: match[2] });
+for (const match of html.matchAll(/"FileRef"\s*:\s*("(?:[^"\\]|\\.)*(ev|ais)_torzsadatok_(\d{8})\.zip")/gi)) {
+  refs.push({ ref: JSON.parse(match[1]), kind: match[2].toLowerCase(), date: match[3] });
 }
-if (!refs.length) throw new Error("Nem található ev_torzsadatok_YYYYMMDD.zip a mappában.");
+if (!refs.length) throw new Error("Nem található ev/ais_torzsadatok_YYYYMMDD.zip a mappában.");
 refs.sort((a, b) => b.date.localeCompare(a.date));
 const latest = refs[0];
 const encodedPath = latest.ref.split("/").map((part) => encodeURIComponent(part)).join("/");
 const downloadUrl = new URL(encodedPath, new URL(folderUrl).origin).href;
 const dataDate = `${latest.date.slice(0, 4)}-${latest.date.slice(4, 6)}-${latest.date.slice(6, 8)}`;
-const result = { fileName: `ev_torzsadatok_${latest.date}.zip`, dataDate, downloadUrl };
+const result = { fileName: `${latest.kind}_torzsadatok_${latest.date}.zip`, dataDate, downloadUrl };
 
 if (!listOnly) {
   const response = await fetch(downloadUrl, { headers: { "user-agent": userAgent } });
