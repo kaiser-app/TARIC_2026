@@ -58,12 +58,16 @@ export default async request=>{
   const measures=[...unique.values()];
   const grouped=new Map();
   for(const item of measures){
-    const key=JSON.stringify([item.direction,item.type,item.area,item.additionalCode]);
-    const group=grouped.get(key)??{direction:item.direction,type:item.type,area:item.area,additionalCode:item.additionalCode,label:typeNames[item.type]||`TARIC-intézkedés ${item.type}`,validFrom:item.start||null,validTo:item.end||null,rates:[],conditions:[]};
+    // EV condition rows and AIS rate rows describe the same legal measure.
+    // Group them by measure type and territorial scope; supplementary codes are
+    // alternatives/details inside that measure, not separate measures.
+    const key=JSON.stringify([item.type,item.area]);
+    const group=grouped.get(key)??{direction:item.direction.startsWith("import")?"import":item.direction,type:item.type,area:item.area,additionalCode:item.additionalCode,label:typeNames[item.type]||`TARIC-intézkedés ${item.type}`,validFrom:item.start||null,validTo:item.end||null,additionalCodes:[],rates:[],conditions:[]};
+    if(item.additionalCode)group.additionalCodes.push(item.additionalCode);
     if(item.rate!==undefined&&item.rate!==null)group.rates.push({value:item.rate,expression:item.expression,currency:item.currency,unit:item.unit,legal:item.legal,orderNumber:item.orderNumber});
     if(item.description||item.certificate)group.conditions.push({certificate:item.certificate||null,description:item.description||null});
     grouped.set(key,group);
   }
-  const groups=[...grouped.values()].map(group=>({...group,rates:[...new Map(group.rates.map(r=>[JSON.stringify(r),r])).values()],conditions:[...new Map(group.conditions.map(c=>[JSON.stringify(c),c])).values()],conditionCount:new Set(group.conditions.map(c=>c.certificate||c.description)).size})).sort((a,b)=>priority(a.type)-priority(b.type)||a.type.localeCompare(b.type));
+  const groups=[...grouped.values()].map(group=>({...group,additionalCodes:[...new Set(group.additionalCodes)],rates:[...new Map(group.rates.map(r=>[JSON.stringify(r),r])).values()],conditions:[...new Map(group.conditions.map(c=>[JSON.stringify(c),c])).values()],conditionCount:new Set(group.conditions.map(c=>c.certificate||c.description)).size})).sort((a,b)=>priority(a.type)-priority(b.type)||a.type.localeCompare(b.type));
   return new Response(JSON.stringify({status:"ok",dataDate:data.dataDate,code,origin:origin||null,count:groups.length,rawConditionCount:measures.length,groups,measures:measures.slice(0,250),truncated:measures.length>250,valueCheck:{valueHuf:valueHuf||null,ecbRate,valueEur:valueEur===null?null:Number(valueEur.toFixed(2)),traffic,lowValueEligible},warning:"Az alapnézet intézkedéstípusonként csoportosít. A részletes igazolási és mentességi feltételek lenyithatók."}),{headers});
 };
