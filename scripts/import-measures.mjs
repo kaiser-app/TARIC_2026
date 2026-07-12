@@ -9,7 +9,9 @@ function rows(xml){const all=[...xml.matchAll(/<Row\b[^>]*>([\s\S]*?)<\/Row>/g)]
 const active=r=>(!r.EKEZD||r.EKEZD<=dataDate.replaceAll("-","."))&&(!r.EVEGE||r.EVEGE>=dataDate.replaceAll("-","."));
 const byCode={};const sources=[];
 for(const [file,direction]of files){const path=resolve(sourceDir,file),info=await stat(path),parsed=rows(await readFile(path,"utf8")),valid=parsed.filter(active);sources.push({file,bytes:info.size,rows:parsed.length,activeRows:valid.length});for(const r of valid){const code=(r.VTSZ||"").replace(/\D/g,"");if(!code)continue;(byCode[code]??=[]).push([direction,(r.TERULET||"").trim(),(r.INT_TIP||"").trim(),(r.KIEG_KOD||"").trim(),(r.IGAZOLAS_KOD||"").trim(),r.IGAZOLAS_LEIR||"",r.EKEZD||"",r.EVEGE||""]);}}
-await mkdir(outDir,{recursive:true});await writeFile(resolve(outDir,"measures-index.json"),JSON.stringify({schemaVersion:1,dataDate,sources,byCode}));
+const groupRows=rows(await readFile(resolve(sourceDir,"import_orszagcsop_kod.xml"),"utf8")),countryGroups={};
+for(const row of groupRows){const group=(row.ORSZAG_CSOPORT||"").trim(),country=(row.ORSZAG||"").trim().toUpperCase();if(group&&country)(countryGroups[group]??=[]).push(country);}
+await mkdir(outDir,{recursive:true});await writeFile(resolve(outDir,"measures-index.json"),JSON.stringify({schemaVersion:2,dataDate,sources,countryGroups,byCode}));
 const manifestPath=resolve(outDir,"manifest.json"),manifest=JSON.parse(await readFile(manifestPath,"utf8")),nomenclature=JSON.parse(await readFile(resolve(outDir,"nomenclature-rows.json"),"utf8"));
 manifest.dataDate=dataDate;manifest.nomenclatureRows=nomenclature.rowCount;manifest.measureRows=sources.reduce((sum,item)=>sum+item.activeRows,0);manifest.measureCodes=Object.keys(byCode).length;
 await writeFile(manifestPath,JSON.stringify(manifest,null,2));
