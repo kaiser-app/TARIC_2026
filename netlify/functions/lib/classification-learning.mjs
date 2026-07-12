@@ -45,7 +45,10 @@ const containsTerm = (text, term) => {
   return haystack.includes(` ${needle} `) || normalize(text).replace(/ /g, "").includes(needle.replace(/ /g, ""));
 };
 
-const ignoredDictionaryTerms = new Set(["anyag", "aru", "termek", "eszkoz", "keszulek", "szerkezet"]);
+const ignoredDictionaryTerms = new Set([
+  "anyag", "aru", "termek", "eszkoz", "keszulek", "szerkezet",
+  "fekete", "feher", "piros", "voros", "kek", "zold", "sarga", "barna", "szurke", "lila", "rozsaszin", "atlatszo", "szines",
+]);
 const materialAliases = {
   acel: "steel", vas: "steel", fem: "steel", "drot huzal": "steel",
   uveg: "glass", beton: "concrete", bor: "leather", muanyag: "plastic",
@@ -56,15 +59,29 @@ const materialAliases = {
 function semanticMatches(name, combinedText, semanticIndex) {
   if (!semanticIndex?.lookup || !semanticIndex?.records) return [];
   const normalizedName = normalize(name);
-  const words = normalize(combinedText).split(" ").filter(Boolean);
+  const nameWords = normalizedName.split(" ").filter(Boolean);
+  const words = normalize(combinedText).split(" ").filter((word) => word && !ignoredDictionaryTerms.has(word));
   const ids = new Set(semanticIndex.lookup[normalizedName] || []);
-  for (let size = Math.min(4, words.length); size >= 1 && ids.size < 8; size--) {
-    for (let start = 0; start + size <= words.length && ids.size < 8; start++) {
-      const term = words.slice(start, start + size).join(" ");
-      if (term.length < 4 || ignoredDictionaryTerms.has(term)) continue;
-      for (const id of semanticIndex.lookup[term] || []) ids.add(id);
+  const addNgrams = (tokens) => {
+    for (let size = Math.min(4, tokens.length); size >= 1 && ids.size < 8; size--)
+      for (let start = 0; start + size <= tokens.length && ids.size < 8; start++) {
+        const term = tokens.slice(start, start + size).join(" ");
+        if (term.length < 4 || ignoredDictionaryTerms.has(term)) continue;
+        for (const id of semanticIndex.lookup[term] || []) ids.add(id);
+      }
+  };
+  addNgrams(nameWords);
+  if (!ids.size) {
+    const compactName = normalizedName.replace(/ /g, "");
+    for (const [term, recordIds] of Object.entries(semanticIndex.lookup)) {
+      const compactTerm = term.replace(/ /g, "");
+      if (compactTerm.length < 5 || ignoredDictionaryTerms.has(term)) continue;
+      if (compactName.endsWith(compactTerm) || compactName.startsWith(compactTerm))
+        for (const id of recordIds) ids.add(id);
+      if (ids.size >= 8) break;
     }
   }
+  if (!ids.size) addNgrams(words);
   return [...ids].map((id) => semanticIndex.records[id]).filter(Boolean)
     .sort((a, b) => (a.r === "H" ? -1 : 0) - (b.r === "H" ? -1 : 0)).slice(0, 8);
 }
