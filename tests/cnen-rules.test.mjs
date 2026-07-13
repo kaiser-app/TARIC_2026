@@ -10,7 +10,7 @@ if (!index.source.languages?.includes("EN") || !index.source.languages?.includes
   || index.pairing?.rowsWithoutExplanation !== 6282
   || index.pairing?.uniqueExplanationKeys !== 2447)
   throw new Error("A magyar–angol KN10-sorpárosítás metaadatai hibásak.");
-if (index.records.length !== 25820 || index.notes.length !== 2447 || index.headingIds.length !== 1331)
+if (index.records.length !== 25820 || index.noteCount !== 2447 || index.headingIds.length !== 1331)
   throw new Error("A KN10 sorok, magyarázatkulcsok vagy négyszámjegyű fejlécek száma hibás.");
 if (index.coverage.totalKn8 !== 12792 || index.coverage.explainedKn8 !== 9148
   || index.coverage.missingKn8 !== 3644 || index.coverage.missingRows !== 6282)
