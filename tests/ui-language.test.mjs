@@ -13,11 +13,14 @@ if (!source.includes('lang==="hu"?(cnenSelected.contentHu||cnenSelected.content)
 if (!source.includes('{L("Magyar magyarázó szöveg","Explanatory note")}'))
   throw new Error("A magyarázó szöveg nyelvi címe hibás.");
 
-if (!source.includes("const applyCnenSelection=")
+if (!source.includes("const applyCnenSelection=async(record)")
   || !source.includes("setProduct(hungarianName)")
   || !source.includes("setCode(selectedCode)")
+  || !source.includes('/api/taric-search?q=')
+  || !source.includes('selectedPrefix.padEnd(10,"0")')
+  || !source.includes('String(value ?? "")')
   || !source.includes('className="cnen-use-code"'))
-  throw new Error("A Tallózásból történő kód- és magyar megnevezésátvétel hiányzik.");
+  throw new Error("A Tallózásból történő KN/TARIC-kód- és magyar megnevezésátvétel hiányzik.");
 
 const resultIndex = source.indexOf('{result &&');
 const gridIndex = source.indexOf('<section className="grid">');
@@ -33,4 +36,4 @@ if (!uiCss.includes("--content-block-gap:18px")
   || !uiCss.includes("scrollbar-gutter:stable"))
   throw new Error("A fix Tallózás-panel vagy az egységes térköz stílusai hiányoznak.");
 
-console.log("OK UI: HU tartalom, egységes térköz, fix Tallózás-panel és kódátvétel");
+console.log("OK UI: HU tartalom, egységes térköz, fix Tallózás-panel és KN/TARIC-kódátvétel");
