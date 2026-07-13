@@ -7,14 +7,19 @@ async function call(queryStringParameters = {}, httpMethod = "GET") {
 }
 
 const browse = await call();
-if (browse.status !== 200 || browse.data.recordCount !== 2533 || browse.data.results.length < 30)
+if (browse.status !== 200 || browse.data.recordCount !== 2533 || browse.data.chapters?.length < 50)
   throw new Error("A KN-magyarázat alapértelmezett tallózólistája hiányos.");
-if (!browse.data.results.every((record) => record.code.length === 4))
-  throw new Error("Az alapértelmezett tallózásnak áruosztályszintű kódokkal kell indulnia.");
+if (browse.data.results.length || !browse.data.chapters.every((chapter) => chapter.code.length === 2
+  && chapter.items.every((record) => record.code.length === 4)))
+  throw new Error("Az alapértelmezett tallózásnak összecsukott, kétjegyű KN-fejezetekkel kell indulnia.");
+if (!browse.data.chapters.some((chapter) => chapter.headingHu && chapter.items.some((item) => item.headingHu)))
+  throw new Error("A tartalomböngészőből hiányoznak a hivatalos magyar KN-megnevezések.");
 
 const codeSearch = await call({ q: "4202", limit: "50" });
 if (codeSearch.status !== 200 || codeSearch.data.results[0]?.code !== "4202")
   throw new Error("A KN-kód szerinti keresésben nem az egzakt kód az első találat.");
+if (!codeSearch.data.results[0]?.headingHu)
+  throw new Error("A kód szerinti találatból hiányzik a magyar KN-megnevezés.");
 if (!codeSearch.data.results.some((record) => record.code.startsWith("4202") && record.code.length > 4))
   throw new Error("A kód szerinti tallózás nem adja vissza az alszámokat.");
 
