@@ -193,6 +193,49 @@ if (/melyik további jellemző|tarifális ág/i.test(incompleteCase.clarificatio
   throw new Error("A kérdéskapu absztrakt tarifális kérdést tett fel.");
 console.log("OK hiányos telefontok → konkrét funkciókérdés");
 
+const protectiveChoice = incompleteCase.clarificationOptions.find((option) => option.confirmedFact?.attributes?.protective);
+if (!protectiveChoice) throw new Error("A védőtok-válasz nem ad vissza nyelvfüggetlen, strukturált tényt.");
+const chosenProtectiveResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    name: "telefontok",
+    description: `PVC-ből készült, ${protectiveChoice.appendText}`,
+    confirmedFacts: protectiveChoice.confirmedFact,
+  }),
+}));
+const chosenProtective = await chosenProtectiveResponse.json();
+if (chosenProtective.status !== "classified" || chosenProtective.code !== "3926909790")
+  throw new Error(`A „Védőtok” válasz után ismételt kérdés vagy hibás kód érkezett: ${chosenProtective.clarification || chosenProtective.code}`);
+
+const englishPhoneCaseResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "PHONE CASE", description: "SILICONE, PROTECTIVE" }),
+}));
+const englishPhoneCase = await englishPhoneCaseResponse.json();
+if (englishPhoneCase.status !== "classified" || englishPhoneCase.code !== "3926909790")
+  throw new Error(`Az angol silicone/protective telefontok nem osztályozódott: ${englishPhoneCase.clarification || englishPhoneCase.code}`);
+
+const englishIncompleteResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "PHONE CASE", description: "SILICONE" }),
+}));
+const englishIncomplete = await englishIncompleteResponse.json();
+const englishProtectiveChoice = englishIncomplete.clarificationOptions?.find((option) => option.labelEn === "Protective case");
+if (!englishIncomplete.clarificationEn || !englishProtectiveChoice?.appendTextEn || !englishProtectiveChoice.confirmedFact)
+  throw new Error("Az angol telefontok-pontosítás kérdése vagy strukturált válasza hiányzik.");
+const englishChosenResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    name: "PHONE CASE",
+    description: `SILICONE, ${englishProtectiveChoice.appendTextEn}`,
+    confirmedFacts: englishProtectiveChoice.confirmedFact,
+  }),
+}));
+const englishChosen = await englishChosenResponse.json();
+if (englishChosen.status !== "classified" || englishChosen.code !== "3926909790")
+  throw new Error("Az angol „Protective case” választ követően a rendszer újra kérdez.");
+console.log("OK telefontok-pontosítás HU/EN → strukturált válasz után nincs ismételt kérdés");
+
 for (const [label, result] of [["pamut póló", tshirt], ["pallós", sword], ["akvárium", aquarium], ["kalitka", cage], ["terrárium", indexedTerrarium]]) {
   if (result.engine !== "profile-engine-v1") throw new Error(`${label} nem az általános profilmotoron fut: ${result.engine}`);
 }
