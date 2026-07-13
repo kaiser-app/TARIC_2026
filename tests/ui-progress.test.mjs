@@ -44,3 +44,11 @@ console.log("OK lenyitható szekciók és futási állapotok vizuális hangsúly
 for (const marker of ['L("Tartalom","Content")', 'topPanel==="content"', '/api/cnen-content', 'KN Magyarázó Megjegyzések', 'cnen-browser-grid', 'cnen-results', 'cnen-detail'])
   if (!(source + styles).includes(marker)) throw new Error(`Hiányzó KN-magyarázat tartalomböngésző: ${marker}`);
 console.log("OK felső Tartalom menü és reszponzív KN-magyarázat böngésző");
+
+for (const marker of ["cnenData.chapters", "cnen-chapter", "Kétjegyű KN-fejezetek", "headingHu", "Eredeti angol magyarázó szöveg"])
+  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó kétnyelvű, összecsukott KN-tartalomhierarchia: ${marker}`);
+console.log("OK kétjegyű, összecsukott KN-fejezetek és magyar hivatalos megnevezések");
+
+for (const marker of ["confirmedFacts", "option.confirmedFact", "option.labelEn", "option.appendTextEn"])
+  if (!source.includes(marker)) throw new Error(`Hiányzó nyelvfüggetlen pontosítás-visszacsatolás: ${marker}`);
+console.log("OK HU/EN pontosítás strukturált tényként kerül vissza a tarifálási motorba");

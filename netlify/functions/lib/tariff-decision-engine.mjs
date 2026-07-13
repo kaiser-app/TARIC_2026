@@ -194,8 +194,11 @@ function clarification(profile, requirement, facts, dataDate) {
     status: "clarification", code: null, confidence: "alacsony", path: [],
     reasoning: `A(z) ${profile.id} termékprofil felismerhető, de a következő tarifális döntési tény nincs még bizonyítva: ${requirement.id}.`,
     clarification: requirement.question,
-    clarificationOptions: sourceOptions.map(([label, appendText], index) => ({
-      id: `${profile.id}_${requirement.id}_${index + 1}`, label, appendText,
+    clarificationEn: requirement.questionEn || null,
+    clarificationOptions: sourceOptions.map(([label, appendText, confirmedFact, labelEn, appendTextEn], index) => ({
+      id: `${profile.id}_${requirement.id}_${index + 1}`,
+      label, appendText, confirmedFact: confirmedFact || null,
+      labelEn: labelEn || null, appendTextEn: appendTextEn || null,
     })),
     factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
   };

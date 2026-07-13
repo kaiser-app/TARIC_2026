@@ -13,13 +13,23 @@ export const tariffProfiles = [
   },
   {
     id: "protective_phone_case", priority: 110, conceptsAny: ["phone_case"],
+    rejectIf: [{ path: "inferredFacts.attributes.carryingCase", equals: true }],
     required: [
       { id: "material", test: { path: "materials", includesAny: ["plastic"] },
         question: "Milyen anyagból készült a telefontok fő teste?",
-        options: [["Műanyag / PVC / szilikon", "fő teste műanyagból készült"], ["Bőr", "fő teste bőrből készült"], ["Textil", "fő teste textilből készült"]] },
+        questionEn: "What material is the main body of the phone case made of?",
+        options: [
+          ["Műanyag / PVC / szilikon", "fő teste műanyagból készült", { materials: ["plastic"] }, "Plastic / PVC / silicone", "its main body is made of plastic"],
+          ["Bőr", "fő teste bőrből készült", { materials: ["leather"] }, "Leather", "its main body is made of leather"],
+          ["Textil", "fő teste textilből készült", { materials: ["textile"] }, "Textile", "its main body is made of textile"],
+        ] },
       { id: "protective", test: { path: "inferredFacts.attributes.protective", equals: true },
         question: "A tok elsődlegesen a telefon védelmére szolgál, vagy hordtáska/pénztárca jellegű?",
-        options: [["Védőtok", "elsődlegesen a telefon védelmére szolgáló tok"], ["Hordtáska / pénztárca", "hordtáska vagy pénztárca jellegű"]] },
+        questionEn: "Is the case primarily protective, or is it a carrying case/wallet?",
+        options: [
+          ["Védőtok", "elsődlegesen a telefon védelmére szolgáló tok", { attributes: { protective: true, carryingCase: false } }, "Protective case", "primarily serves to protect the phone"],
+          ["Hordtáska / pénztárca", "hordtáska vagy pénztárca jellegű", { attributes: { protective: false, carryingCase: true } }, "Carrying case / wallet", "is a carrying case or wallet"],
+        ] },
     ],
     result: { code: "3926909790", path: ["3926000000", "3926900000", "3926909700", "3926909790"],
       reasoning: "GRI 1 és 6: a műanyagból készült védő telefontok kész műanyag áru; nem telefonalkatrész és nem hordtáska." },
