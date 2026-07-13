@@ -19,18 +19,21 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --silent
-      - name: Capture production build
+      - name: Capture double-patch production build
         shell: bash
         run: |
           set +e
+          npm run patch:ui > prepatch.log 2>&1
+          prepatch_status=$?
           npm run build > build.log 2>&1
-          status=$?
-          echo "$status" > build-status.txt
+          build_status=$?
+          printf "prepatch=%s\nbuild=%s\n" "$prepatch_status" "$build_status" > build-status.txt
           exit 0
       - uses: actions/upload-artifact@v4
         with:
           name: navigation-build-log
           path: |
+            prepatch.log
             build.log
             build-status.txt
           if-no-files-found: error
