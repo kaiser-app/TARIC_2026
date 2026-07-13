@@ -1,0 +1,10 @@
+const SECTIONS = [
+  [1, 5, "I", "Élő állatok; állati termékek", "Live animals; animal products"],
+  [6, 14, "II", "Növényi termékek", "Vegetable products"],
+  [15, 15, "III", "Állati, növényi vagy mikrobiális zsír és olaj és ezek bontási termékei; elkészített étkezési zsír; állati vagy növényi eredetű viasz", "Animal, vegetable or microbial fats and oils and their cleavage products; prepared edible fats; animal or vegetable waxes"],
+  [16, 24, "IV", "Élelmiszer-készítmények; italok, alkoholtartalmú folyadékok és ecet; dohány és feldolgozott dohánypótlók; égés nélküli belégzésre szánt és más nikotintartalmú termékek", "Prepared foodstuffs; beverages, spirits and vinegar; tobacco and manufactured tobacco substitutes; products intended for inhalation without combustion and other nicotine-containing products"],
+  [25, 27, "V", "Ásványi termékek", "Mineral products"],
+  [28, 38, "VI", "Vegyipari vagy rokon ipari termékek", "Products of the chemical or allied industries"],
+  [39, 40, "VII", "Műanyagok és ezekből készült áruk; gumi és ebből készült áruk", "Plastics and articles thereof; rubber and articles thereof"],
+  [41, 43, "VIII", "Nyersbőr, kikészített bőr, szőrme és ezekből készült áruk; nyerges- és szíjgyártó áruk; utazási cikkek, kézitáskák és hasonló tartók; bélből készült áruk", "Raw hides and skins, leather, furskins and articles thereof; saddlery and harness; travel goods, handbags and similar containers; articles of animal gut"],
+  [44, 
