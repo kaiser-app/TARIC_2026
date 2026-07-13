@@ -30,6 +30,12 @@ if (!source.includes('className="taric-code-input"')
   || !source.includes('clean(code).length<4'))
   throw new Error("A TARIC-kód mező kézi szerkesztése vagy elsődleges feldolgozása hiányzik.");
 
+const heroIndex = source.indexOf('<section className="hero">');
+const cnenIndex = source.indexOf('{topPanel==="content"&&<section className="top-drawer cnen-browser">');
+const agentIndex = source.indexOf('<section className="panel agent-panel">');
+if (heroIndex < 0 || cnenIndex < heroIndex || agentIndex < cnenIndex)
+  throw new Error("A Tallózás blokknak a fejléc után, közvetlenül a termékűrlap előtt kell megjelennie.");
+
 const resultIndex = source.indexOf('{result &&');
 const gridIndex = source.indexOf('<section className="grid">');
 if (resultIndex < 0 || gridIndex < resultIndex)
@@ -39,10 +45,11 @@ if (!mainSource.includes('import "./ui-fixes.css"'))
   throw new Error("Az UI javításokat tartalmazó stíluslap nincs betöltve.");
 
 if (!uiCss.includes("--content-block-gap:18px")
+  || !uiCss.includes("main>.cnen-browser{margin:0 0 var(--content-block-gap)")
   || !uiCss.includes(".cnen-browser{height:650px")
   || !uiCss.includes("overflow-y:scroll")
   || !uiCss.includes("scrollbar-gutter:stable")
   || !uiCss.includes(".taric-code-input"))
-  throw new Error("A fix Tallózás-panel, az egységes térköz vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
+  throw new Error("A Tallózás elhelyezése, fix mérete, egységes térköze vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: HU tartalom, egységes térköz, fix Tallózás-panel, KN/TARIC-kódátvétel és kézi kódbevitel");
+console.log("OK UI: Tallózás a termékűrlap előtt, egységes térköz, HU tartalom, KN/TARIC-kódátvétel és kézi kódbevitel");
