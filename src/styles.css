@@ -29,6 +29,8 @@ footer{padding:30px 0 50px;color:#738078;font-size:12px}@media(max-width:850px){
 .measure-group summary{padding:12px 14px;color:#2f3f37;font-weight:450}
 .measure-group summary b{font-weight:750;color:#167052}
 .measure-group summary small{background:#edf5f0;color:#47715d;font-weight:600}
+.measure-section-title{margin:8px 2px 0;padding:7px 10px 6px;border-bottom:1px solid #dfe7e2;color:#52685d;font-size:12px;font-weight:650;letter-spacing:.025em}
+.measure-section-title:first-child{margin-top:0}
 .agent-submit{font-weight:700;transition:background-color .18s,color .18s,opacity .18s}
 .agent-submit.is-loading,.agent-submit.is-loading:disabled{background:#6f8278;color:#f8fbf9;font-weight:600;opacity:1;cursor:wait}
 .agent-submit.is-loading:hover{background:#6f8278}
