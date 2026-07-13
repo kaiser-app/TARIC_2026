@@ -22,6 +22,14 @@ if (!source.includes("const applyCnenSelection=async(record)")
   || !source.includes('className="cnen-use-code"'))
   throw new Error("A Tallózásból történő KN/TARIC-kód- és magyar megnevezésátvétel hiányzik.");
 
+if (!source.includes('className="taric-code-input"')
+  || !source.includes('value={code}')
+  || !source.includes('setCode(clean(event.target.value))')
+  || !source.includes('manualCode.length>=4')
+  || !source.includes('Felhasználó által megadott KN/TARIC-kód.')
+  || !source.includes('clean(code).length<4'))
+  throw new Error("A TARIC-kód mező kézi szerkesztése vagy elsődleges feldolgozása hiányzik.");
+
 const resultIndex = source.indexOf('{result &&');
 const gridIndex = source.indexOf('<section className="grid">');
 if (resultIndex < 0 || gridIndex < resultIndex)
@@ -33,7 +41,8 @@ if (!mainSource.includes('import "./ui-fixes.css"'))
 if (!uiCss.includes("--content-block-gap:18px")
   || !uiCss.includes(".cnen-browser{height:650px")
   || !uiCss.includes("overflow-y:scroll")
-  || !uiCss.includes("scrollbar-gutter:stable"))
-  throw new Error("A fix Tallózás-panel vagy az egységes térköz stílusai hiányoznak.");
+  || !uiCss.includes("scrollbar-gutter:stable")
+  || !uiCss.includes(".taric-code-input"))
+  throw new Error("A fix Tallózás-panel, az egységes térköz vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: HU tartalom, egységes térköz, fix Tallózás-panel és KN/TARIC-kódátvétel");
+console.log("OK UI: HU tartalom, egységes térköz, fix Tallózás-panel, KN/TARIC-kódátvétel és kézi kódbevitel");
