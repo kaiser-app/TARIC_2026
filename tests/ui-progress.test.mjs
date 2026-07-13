@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
+const navSource = await readFile(new URL("../src/MainNavigation.jsx", import.meta.url), "utf8");
 const styles = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+const uiSources = source + navSource + styles;
 const stages = [
   'setProgressStage("classification")',
   'setProgressStage("calculation")',
@@ -30,7 +32,7 @@ for (const marker of ['group.type === "AAF"', 'variants: aafGroups', 'group.vari
 console.log("OK AAF sorok egy sorba csoportosítva, lenyitható kiegészítő kódokkal");
 
 for (const marker of ['measureSectionKey', '["103", "107"]', '"customs"', '"tax"', '"other"', 'measure-section-title', 'Vámtételek', 'Adók', 'Egyéb intézkedések'])
-  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó intézkedésblokk-fejléc: ${marker}`);
+  if (!uiSources.includes(marker)) throw new Error(`Hiányzó intézkedésblokk-fejléc: ${marker}`);
 console.log("OK intézkedések típusváltáskor szakaszfejlécet kapnak");
 
 for (const marker of ["grid-template-columns:60px minmax(0,1fr) 90px 100px", "text-align:right", "width:100px"])
@@ -38,15 +40,15 @@ for (const marker of ["grid-template-columns:60px minmax(0,1fr) 90px 100px", "te
 console.log("OK intézkedési kódok jobb széle fix függőleges vonalra igazítva");
 
 for (const marker of ['loading ? "is-loading"', "font-size:16px;font-weight:650", ".agent-submit.is-loading", "background:#6f8278", "font-weight:600;opacity:1"])
-  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó visszafogott vizuális hierarchia: ${marker}`);
+  if (!uiSources.includes(marker)) throw new Error(`Hiányzó visszafogott vizuális hierarchia: ${marker}`);
 console.log("OK lenyitható szekciók és futási állapotok vizuális hangsúlya csökkentve");
 
-for (const marker of ['L("Tallózás","Browse")', 'topPanel==="content"', '/api/cnen-content', 'KN Magyarázó Megjegyzések', 'cnen-browser-grid', 'cnen-results', 'cnen-detail'])
-  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó KN-magyarázat tartalomböngésző: ${marker}`);
+for (const marker of ['L("Tallózás", "Browse")', 'topPanel === "content"', '/api/cnen-content', 'KN Magyarázó Megjegyzések', 'cnen-browser-grid', 'cnen-results', 'cnen-detail'])
+  if (!uiSources.includes(marker)) throw new Error(`Hiányzó KN-magyarázat tartalomböngésző: ${marker}`);
 console.log("OK felső Tallózás menü és reszponzív KN-magyarázat böngésző");
 
 for (const marker of ["cnenData.chapters", "cnen-chapter", "Kétjegyű KN-fejezetek", "headingHu", "Magyar magyarázó szöveg", "cnenSelected.contentHu"])
-  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó kétnyelvű, összecsukott KN-tartalomhierarchia: ${marker}`);
+  if (!uiSources.includes(marker)) throw new Error(`Hiányzó kétnyelvű, összecsukott KN-tartalomhierarchia: ${marker}`);
 console.log("OK kétjegyű, összecsukott KN-fejezetek és nyelvfüggő magyarázószöveg");
 
 for (const marker of ["confirmedFacts", "option.confirmedFact", "option.labelEn", "option.appendTextEn"])
