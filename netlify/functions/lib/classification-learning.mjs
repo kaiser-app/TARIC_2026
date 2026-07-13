@@ -9,6 +9,7 @@ const normalize = (value) => String(value || "")
   .trim();
 
 const conceptTerms = {
+  eyewear: ["szemuveg", "napszemuveg", "vedoszemuveg", "latasjavito szemuveg", "glasses", "sunglasses"],
   phone_case: ["telefontok", "telefon tok", "mobiltelefontok", "mobil telefon tok", "phone case"],
   tshirt: ["polo", "t shirt", "tshirt"],
   hunting_knife: ["vadaszkes", "vadasz kes"],
@@ -110,6 +111,10 @@ export function analyzeProductInput(name, description, semanticIndex) {
     }
   }
   const matches = semanticMatches(name, combinedText, semanticIndex);
+  const indexedConcepts = matches.map((item) => item.concept).filter(Boolean);
+  concepts.push(...indexedConcepts);
+  if (!canonicalProduct && indexedConcepts.length) canonicalProduct = indexedConcepts[0];
+  const indexedAttributes = Object.assign({}, ...matches.map((item) => item.a).filter(Boolean));
   const materials = [];
   for (const [material, terms] of Object.entries(materialTerms))
     if (terms.some((term) => containsTerm(combinedText, term))) materials.push(material);
@@ -129,7 +134,7 @@ export function analyzeProductInput(name, description, semanticIndex) {
     concepts: [...new Set(concepts)],
     materials: [...new Set(materials)],
     semanticIndexVersion: semanticIndex?.version || null,
-    semanticMatches: matches.map((item) => ({ term: item.t, relevance: item.r, category: item.c })),
+    semanticMatches: matches.map((item) => ({ term: item.t, relevance: item.r, category: item.c, concept: item.concept || null })),
     semanticTerms: dictionaryTerms.join(" "),
     semanticSearchText: [...dictionaryTerms, ...dictionaryCategories, ...dictionaryFunctions].join(" "),
     inferredFacts: {
@@ -162,6 +167,12 @@ export function analyzeProductInput(name, description, semanticIndex) {
           : /beton.{0,50}(?:lenyeges jelleget ad|adja a lenyeges jelleget|fo tartoszerkezet)/.test(normalize(combinedText)) ? "concrete"
           : /muanyag.{0,50}(?:lenyeges jelleget ad|adja a lenyeges jelleget|fo tartalyfal)/.test(normalize(combinedText)) ? "plastic"
           : null,
+        sunglasses: Boolean(indexedAttributes.sunglasses) || /napszemuveg|napvedo szemuveg/.test(normalize(combinedText)),
+        correctiveEyewear: Boolean(indexedAttributes.correctiveEyewear) || /dioptrias|latasjavito|korrekcios/.test(normalize(combinedText)),
+        protectiveEyewear: Boolean(indexedAttributes.protectiveEyewear) || /vedoszemuveg|munkavedelmi szemuveg/.test(normalize(combinedText)),
+        plasticLens: Boolean(indexedAttributes.plasticLens) || /muanyag lencse|polikarbonat lencse/.test(normalize(combinedText)),
+        glassLens: Boolean(indexedAttributes.glassLens) || /uveg lencse|asvanyi uveg/.test(normalize(combinedText)),
+        opticallyWorkedLens: Boolean(indexedAttributes.opticallyWorkedLens) || /optikailag megmunkalt lencse|dioptrias/.test(normalize(combinedText)),
       },
     },
   };
