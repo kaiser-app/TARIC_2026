@@ -4,6 +4,8 @@ import { cnenHierarchyForCode } from "../src/cnen-hierarchy.js";
 const source = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
 const mainSource = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
 const uiCss = await readFile(new URL("../src/ui-fixes.css", import.meta.url), "utf8");
+const aiSource = await readFile(new URL("../src/AiProviderPanel.jsx", import.meta.url), "utf8");
+const aiCss = await readFile(new URL("../src/ai-provider-panel.css", import.meta.url), "utf8");
 
 if (!source.includes('{L("Tallózás","Browse")}'))
   throw new Error("A Tallózás/Browse menüfelirat nincs a forrásban.");
@@ -31,6 +33,28 @@ if (!source.includes('className="taric-code-input"')
   || !source.includes('clean(code).length<4'))
   throw new Error("A TARIC-kód mező kézi szerkesztése vagy elsődleges feldolgozása hiányzik.");
 
+if (!source.includes('topPanel==="ai"?"active":""')
+  || !source.includes('topPanel==="ai"&&<AiProviderPanel')
+  || !source.includes('const applyAiSelection=')
+  || !source.includes('initialProduct={product}')
+  || !source.includes('onApply={applyAiSelection}'))
+  throw new Error("Az AI gomb, a lenyíló szolgáltatópanel vagy a fő tarifálóba történő visszaadás hiányzik.");
+
+for (const label of ["Claude - Ügynök", "ChatGpt - GPT", "Gemini - Gem"])
+  if (!aiSource.includes(label)) throw new Error(`Hiányzó AI szolgáltatófül: ${label}`);
+if (!aiSource.includes('https://claude.ai/new')
+  || !aiSource.includes('https://chatgpt.com/')
+  || !aiSource.includes('https://gemini.google.com/app')
+  || !aiSource.includes('navigator.clipboard.writeText(prompt)')
+  || !aiSource.includes('window.open(selected.url')
+  || aiSource.includes('api.anthropic.com')
+  || aiSource.includes('x-api-key'))
+  throw new Error("Az AI panel nem saját fiókos, API nélküli promptátadást használ.");
+if (!aiSource.includes('AI-válasz visszaillesztése')
+  || !aiSource.includes('Kód és megnevezés átvétele')
+  || !aiSource.includes('parseJson(responseText)'))
+  throw new Error("A külső AI-válasz visszaillesztése vagy feldolgozása hiányzik.");
+
 const phoneHierarchy = cnenHierarchyForCode("8517130000");
 if (phoneHierarchy.sectionCode !== "XVI" || phoneHierarchy.chapterCode !== "85"
   || !phoneHierarchy.sectionDescriptionHu.includes("Gépek")
@@ -45,9 +69,10 @@ if (!source.includes('className="cnen-hierarchy"')
 
 const heroIndex = source.indexOf('<section className="hero">');
 const cnenIndex = source.indexOf('{topPanel==="content"&&<section className="top-drawer cnen-browser">');
+const aiIndex = source.indexOf('{topPanel==="ai"&&<AiProviderPanel');
 const agentIndex = source.indexOf('<section className="panel agent-panel">');
-if (heroIndex < 0 || cnenIndex < heroIndex || agentIndex < cnenIndex)
-  throw new Error("A Tallózás blokknak a fejléc után, közvetlenül a termékűrlap előtt kell megjelennie.");
+if (heroIndex < 0 || cnenIndex < heroIndex || aiIndex < heroIndex || agentIndex < cnenIndex || agentIndex < aiIndex)
+  throw new Error("A Tallózás és az AI panel blokkjának a fejléc után, a termékűrlap előtt kell megjelennie.");
 
 const resultIndex = source.indexOf('{result &&');
 const gridIndex = source.indexOf('<section className="grid">');
@@ -60,14 +85,16 @@ if (!mainSource.includes('import "./ui-fixes.css"'))
 if (!uiCss.includes("--content-block-gap:18px")
   || !uiCss.includes("main{display:flex;flex-direction:column}")
   || !uiCss.includes("main>.hero{order:2}")
-  || !uiCss.includes("main>.cnen-browser{order:3}")
+  || !uiCss.includes("main>.cnen-browser,main>.ai-provider-panel{order:3}")
   || !uiCss.includes("main>.agent-panel{order:4}")
-  || !uiCss.includes("main>.cnen-browser{margin:0 0 var(--content-block-gap)")
+  || !uiCss.includes("main>.cnen-browser,main>.ai-provider-panel{margin:0 0 var(--content-block-gap)")
   || !uiCss.includes(".cnen-browser{height:650px")
   || !uiCss.includes("overflow-y:scroll")
   || !uiCss.includes("scrollbar-gutter:stable")
   || !uiCss.includes(".taric-code-input")
-  || !uiCss.includes(".cnen-hierarchy"))
-  throw new Error("A blokkcsere, a Tallózás fix mérete, hierarchiája, egységes térköze vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
+  || !uiCss.includes(".cnen-hierarchy")
+  || !aiCss.includes(".ai-provider-tabs")
+  || !aiCss.includes(".ai-provider-grid"))
+  throw new Error("A Tallózás, az AI panel, a hierarchia, az egységes térköz vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: Tallózás-hierarchia áruosztállyal és árucsoporttal; egységes térköz, HU/EN tartalom, KN/TARIC-kódátvétel és kézi kódbevitel");
+console.log("OK UI: Tallózás és AI szolgáltatópanel a fő űrlap előtt; API nélküli Claude/ChatGPT/Gemini átadás, HU/EN tartalom és KN/TARIC-kódátvétel");

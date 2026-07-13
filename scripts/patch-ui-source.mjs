@@ -14,6 +14,11 @@ if (!source.includes('from "./taric-link.js"')) {
   if (!source.includes(importAnchor)) throw new Error("A KN-hierarchia import nem található az App.jsx fájlban.");
   source = source.replace(importAnchor, `${importAnchor}\nimport { buildEuTaricUrl } from "./taric-link.js";`);
 }
+if (!source.includes('from "./AiProviderPanel.jsx"')) {
+  const importAnchor = 'import { buildEuTaricUrl } from "./taric-link.js";';
+  if (!source.includes(importAnchor)) throw new Error("A TARIC-link import nem található az App.jsx fájlban.");
+  source = source.replace(importAnchor, `${importAnchor}\nimport AiProviderPanel from "./AiProviderPanel.jsx";`);
+}
 
 const replacements = [
   ['{L("Tartalom","Content")}', '{L("Tallózás","Browse")}'],
@@ -34,6 +39,13 @@ for (const [before, after] of replacements) {
   source = source.replace(before, after);
 }
 
+if (!source.includes('topPanel==="ai"')) {
+  const browseButton = '<button className={topPanel==="content"?"active":""} onClick={()=>setTopPanel(topPanel==="content"?null:"content")}>{L("Tallózás","Browse")}</button>';
+  const aiButton = '<button className={topPanel==="ai"?"active":""} onClick={()=>setTopPanel(topPanel==="ai"?null:"ai")}>AI</button>';
+  if (!source.includes(browseButton)) throw new Error("A Tallózás gomb nem található az AI gomb beszúrásához.");
+  source = source.replace(browseButton, `${browseButton}${aiButton}`);
+}
+
 const oldLoadCnenRecord = '  const loadCnenRecord=async(codeValue)=>{setCnenLoading(true);setCnenError("");try{const data=await getJson(`/api/cnen-content?code=${encodeURIComponent(codeValue)}`);setCnenSelected(data.record);}catch(error){setCnenSelected(null);setCnenError(error.message);}finally{setCnenLoading(false);}};\n';
 const newLoadCnenRecord = `  const loadCnenRecord=async(codeValue)=>{\n    setCnenLoading(true);setCnenError("");\n    try{\n      const hierarchy=cnenHierarchyForCode(codeValue);\n      const [data,chapterData]=await Promise.all([\n        getJson(\`/api/cnen-content?code=\${encodeURIComponent(codeValue)}\`),\n        hierarchy.chapterCode?getJson(\`/api/nomenclature-tree?code=\${encodeURIComponent(hierarchy.chapterCode)}\`).catch(()=>({tree:[]})):Promise.resolve({tree:[]}),\n      ]);\n      const chapterRoot=(chapterData.tree||[]).find((row)=>clean(row?.code)===hierarchy.chapterCode.padEnd(10,"0"));\n      setCnenSelected({\n        ...data.record,\n        ...hierarchy,\n        chapterDescriptionHu:String(chapterRoot?.description||data.record?.chapterDescriptionHu||"").trim(),\n        chapterDescriptionEn:String(chapterRoot?.descriptionEn||chapterRoot?.description||data.record?.chapterDescriptionEn||data.record?.chapterDescriptionHu||"").trim(),\n      });\n    }catch(error){setCnenSelected(null);setCnenError(error.message);}\n    finally{setCnenLoading(false);}\n  };\n`;
 if (source.includes(oldLoadCnenRecord)) source = source.replace(oldLoadCnenRecord, newLoadCnenRecord);
@@ -46,6 +58,13 @@ else if (!source.includes(newHelper)) {
   const anchor = '  const loadCnenSearch=async(searchValue=cnenQuery)=>{setCnenLoading(true);setCnenError("");try{const data=await getJson(`/api/cnen-content?q=${encodeURIComponent(searchValue)}&limit=50`);setCnenData(data);if(data.results?.length)await loadCnenRecord(data.results[0].code);else setCnenSelected(null);}catch(error){setCnenError(error.message);setCnenData(null);setCnenSelected(null);}finally{setCnenLoading(false);}};\n';
   if (!source.includes(anchor)) throw new Error("A CNEN kereső függvény nem található az App.jsx fájlban.");
   source = source.replace(anchor, `${anchor}${newHelper}`);
+}
+
+if (!source.includes("const applyAiSelection=")) {
+  const returnAnchor = "  return <main>";
+  const helper = `  const applyAiSelection=({code:aiCode,product:aiProduct,result:aiResult})=>{\n    const normalizedCode=clean(aiCode||aiResult?.code||"");\n    if(normalizedCode)setCode(normalizedCode);\n    if(aiProduct)setProduct(aiProduct);\n    setQuery("");setConfirmedFacts({});setMeasures(null);setError("");\n    setResult(normalizedCode?{status:"classified",code:normalizedCode,confidence:aiResult?.confidence||L("külső AI","external AI"),reasoning:aiResult?.reasoning||L("Külső AI szolgáltatótól átvett javaslat. Hivatalos ellenőrzés szükséges.","Suggestion imported from an external AI provider. Official verification is required."),path:[],externalAi:true}:null);\n    setTopPanel(null);\n    requestAnimationFrame(()=>{document.querySelector(".agent-panel")?.scrollIntoView({behavior:"smooth",block:"start"});document.querySelector(".agent-panel input")?.focus();});\n  };\n\n`;
+  if (!source.includes(returnAnchor)) throw new Error("Az App komponens visszatérési pontja nem található.");
+  source = source.replace(returnAnchor, `${helper}${returnAnchor}`);
 }
 
 if (!source.includes('className="cnen-hierarchy"')) {
@@ -78,15 +97,22 @@ if (!(contentIndex > heroIndex && contentIndex < agentIndex)) {
   source = source.slice(0, agentIndex) + contentBlock + "\n" + source.slice(agentIndex);
 }
 
+if (!source.includes('topPanel==="ai"&&<AiProviderPanel')) {
+  const panel = '    {topPanel==="ai"&&<AiProviderPanel lang={lang} initialProduct={product} initialDescription={query} initialDate={options.date} initialOrigin={options.origin} initialDirection={options.direction} onApply={applyAiSelection} onClose={()=>setTopPanel(null)}/>}\n';
+  const currentAgentIndex = source.indexOf(agentMarker);
+  if (currentAgentIndex < 0) throw new Error("A termékűrlap nem található az AI panel beszúrásához.");
+  source = source.slice(0, currentAgentIndex) + panel + source.slice(currentAgentIndex);
+}
+
 const gridIndex = source.indexOf('<section className="grid">'), firstResultIndex = source.indexOf('{error &&');
 if (gridIndex !== -1 && firstResultIndex !== -1 && gridIndex < firstResultIndex) {
   const gridMatch = source.match(/\n    <section className="grid">.*?<\/section>\n/s);
   if (!gridMatch) throw new Error("Az alsó adatállapotblokk nem emelhető ki az App.jsx fájlból.");
   const gridBlock = gridMatch[0];source = source.replace(gridBlock, "\n");
   const footerMarker = "\n    <footer>";
-  if (!source.includes(footerMarker)) throw new Error("A lábléc helye nem található az App.jsx fájlban.");
+  if (!source.includes(footerMarker)) throw new Error("A lábléc helye nem található.");
   source = source.replace(footerMarker, `${gridBlock}${footerMarker}`);
 }
 
 await writeFile(appPath, source, "utf8");
-console.log("App.jsx nyelvi, KN-hierarchiai, dinamikus EU TARIC-link, tallózási, kézi kódbeviteli és eredményelrendezési javítások alkalmazva.");
+console.log("App.jsx AI szolgáltatópanellel, KN-hierarchiával, dinamikus EU TARIC-linkkel és kézi kódbevitellel frissítve.");
