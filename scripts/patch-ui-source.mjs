@@ -69,6 +69,26 @@ if (!source.includes('className="cnen-use-code"')) {
   source = source.replace(childrenButton, actionButtons);
 }
 
+const contentMarker = '    {topPanel==="content"&&<section className="top-drawer cnen-browser">';
+const heroMarker = '    <section className="hero">';
+const agentMarker = '    <section className="panel agent-panel">';
+let contentIndex = source.indexOf(contentMarker);
+let heroIndex = source.indexOf(heroMarker);
+let agentIndex = source.indexOf(agentMarker);
+if (contentIndex < 0 || heroIndex < 0 || agentIndex < 0) {
+  throw new Error("A Tallózás, a fejléc vagy a termékűrlap helye nem található.");
+}
+if (!(contentIndex > heroIndex && contentIndex < agentIndex)) {
+  const integrationMarker = '\n    {topPanel==="integration"';
+  const contentEnd = source.indexOf(integrationMarker, contentIndex);
+  if (contentEnd < 0) throw new Error("A Tallózás blokk vége nem található.");
+  const contentBlock = source.slice(contentIndex, contentEnd);
+  source = source.slice(0, contentIndex) + source.slice(contentEnd);
+  agentIndex = source.indexOf(agentMarker);
+  if (agentIndex < 0) throw new Error("A termékűrlap helye nem található az áthelyezéshez.");
+  source = source.slice(0, agentIndex) + contentBlock + "\n" + source.slice(agentIndex);
+}
+
 const gridIndex = source.indexOf('<section className="grid">');
 const firstResultIndex = source.indexOf('{error &&');
 if (gridIndex !== -1 && firstResultIndex !== -1 && gridIndex < firstResultIndex) {
