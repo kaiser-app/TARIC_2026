@@ -7,6 +7,9 @@ on:
     paths:
       - ".github/workflows/build-bilingual-cnen-source.yml"
       - "scripts/build-bilingual-cnen.py"
+      - "scripts/cnen_pdf_core.py"
+      - "scripts/cnen_pdf_parser.py"
+      - "requirements.txt"
       - ".github/trigger-cnen-source"
   workflow_dispatch:
 
@@ -20,7 +23,7 @@ concurrency:
 jobs:
   generate-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,12 +36,11 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
+          cache: pip
 
-      - name: Install PDF extraction utility
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils
+      - name: Install Python dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
 
       - name: Download and validate official EUR-Lex sources
         run: |
@@ -59,18 +61,22 @@ jobs:
 
       - name: Generate compressed bilingual source
         run: |
-          python3 scripts/build-bilingual-cnen.py \
+          python scripts/build-bilingual-cnen.py \
             data/cache/cnen-en-20260213.pdf \
             data/cache/cnen-hu-20260213.pdf \
             --output data/generated/cnen-bilingual-source.json \
             --parts-base data/source/cnen-bilingual-source.json \
             --qa data/source/cnen-bilingual-qa.json \
             --part-size 500000
-          python3 - <<'PY'
+          python - <<'PY'
           import json
           from pathlib import Path
           qa = json.loads(Path('data/source/cnen-bilingual-qa.json').read_text(encoding='utf-8'))
-          assert qa['matchedRecords'] == 2619, qa
+          assert qa['matchedRecords'] == 2671, qa
+          assert qa['monolingualSupplemental'] == 1, qa
+          assert qa['recordCount'] == 2672, qa
+          assert qa['generalRecords'] == 41, qa
+          assert qa['unmatchedExcluded'] == 0, qa
           assert 1 <= qa['compressedPartCount'] <= 64, qa
           print(qa)
           PY
