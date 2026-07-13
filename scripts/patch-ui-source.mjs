@@ -9,6 +9,11 @@ if (!source.includes('from "./cnen-hierarchy.js"')) {
   if (!source.includes(importAnchor)) throw new Error("A lucide-react import nem található az App.jsx fájlban.");
   source = source.replace(importAnchor, `${importAnchor}\nimport { cnenHierarchyForCode } from "./cnen-hierarchy.js";`);
 }
+if (!source.includes('from "./taric-link.js"')) {
+  const importAnchor = 'import { cnenHierarchyForCode } from "./cnen-hierarchy.js";';
+  if (!source.includes(importAnchor)) throw new Error("A KN-hierarchia import nem található az App.jsx fájlban.");
+  source = source.replace(importAnchor, `${importAnchor}\nimport { buildEuTaricUrl } from "./taric-link.js";`);
+}
 
 const replacements = [
   ['{L("Tartalom","Content")}', '{L("Tallózás","Browse")}'],
@@ -20,6 +25,7 @@ const replacements = [
   ['disabled={loading || (!code && !product.trim() && !query.trim())}', 'disabled={loading || (clean(code).length<4 && !product.trim() && !query.trim())}'],
   ['onChange={(e) => {setProduct(e.target.value);setConfirmedFacts({});}}', 'onChange={(e) => {setProduct(e.target.value);setCode("");setResult(null);setMeasures(null);setConfirmedFacts({});}}'],
   ['onChange={(e) => {setQuery(e.target.value);setConfirmedFacts({});}}', 'onChange={(e) => {setQuery(e.target.value);setCode("");setResult(null);setMeasures(null);setConfirmedFacts({});}}'],
+  ['<div className="links">{links.map((x) => <a href={x.href} target="_blank" rel="noreferrer" key={x.href}>{x.label}<ExternalLink size={15} /></a>)}</div>', '<div className="links">{links.map((x) => {const href=x.label==="EU TARIC"?buildEuTaricUrl({code,date:options.date,lang}):x.href;return <a href={href} target="_blank" rel="noreferrer" key={x.label}>{x.label}<ExternalLink size={15} /></a>;})}</div>'],
 ];
 
 for (const [before, after] of replacements) {
@@ -83,4 +89,4 @@ if (gridIndex !== -1 && firstResultIndex !== -1 && gridIndex < firstResultIndex)
 }
 
 await writeFile(appPath, source, "utf8");
-console.log("App.jsx nyelvi, KN-hierarchiai, tallózási, kézi kódbeviteli és eredményelrendezési javítások alkalmazva.");
+console.log("App.jsx nyelvi, KN-hierarchiai, dinamikus EU TARIC-link, tallózási, kézi kódbeviteli és eredményelrendezési javítások alkalmazva.");
