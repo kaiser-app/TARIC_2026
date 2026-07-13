@@ -152,10 +152,16 @@ export default async (request) => {
   }
   const atomic = norm(name);
   const suppliedIsAccessory = accessoryRole(`${name} ${description}`);
+  const normalizedSuppliedContext = norm(`${name} ${description}`).replace(/[^a-z0-9]+/g, " ").trim();
+  const ambiguousExactName = new Set([
+    ...index.records.filter((record) => norm(record.descriptionHu).trim() === atomic.trim()).map((record) => record.vtsz),
+    ...nom.rows.filter((row) => norm(row.description).trim() === atomic.trim()).map((row) => row.code),
+  ]).size > 1;
   const root = hierarchy.find(
     (row) => row.line === 0
       && norm(row.description).includes(atomic)
-      && (suppliedIsAccessory || !accessoryRole(row.description)),
+      && (suppliedIsAccessory || !accessoryRole(row.description))
+      && (!ambiguousExactName || normalizedSuppliedContext.includes(norm(row.description).replace(/[^a-z0-9]+/g, " ").trim())),
   );
   if (root) {
     const branch = root.code.slice(0, 4);
@@ -206,12 +212,46 @@ export default async (request) => {
     if (candidates.length === 5) break;
   }
   const topPrefixes = [...new Set(candidates.map((item) => item.code.slice(0, 4)))];
-  const exactCandidate = candidates.find((item) => norm(item.description).trim() === norm(name).trim());
+  const exactName = norm(name).trim();
+  const suppliedTokens = new Set(norm(`${name} ${description}`).split(/[^a-z0-9]+/).filter((word) => word.length > 2 && !ignored.has(word)));
+  const exactByCode = new Map();
+  const normalizedSupplied = norm(`${name} ${description}`).replace(/[^a-z0-9]+/g, " ").trim();
+  const exactRecords = [
+    ...index.records.map((record) => ({ code: record.vtsz, description: record.descriptionHu })),
+    ...nom.rows.map((row) => ({ code: row.code, description: row.description })),
+  ];
+  for (const record of exactRecords) {
+    if (norm(record.description).trim() !== exactName) continue;
+    const rootsForCode = nom.rows.filter((row) => row.indent === 0 && row.code.startsWith(record.code.slice(0, 4)));
+    const rankedRoots = rootsForCode.map((row) => {
+      const normalizedRoot = norm(row.description).replace(/[^a-z0-9]+/g, " ").trim();
+      const contextScore = (normalizedRoot.length >= 12 && normalizedSupplied.includes(normalizedRoot) ? 1000 : 0) + norm(row.description).split(/[^a-z0-9]+/)
+        .filter((word) => word.length > 2 && !ignored.has(word) && suppliedTokens.has(word))
+        .reduce((score, word) => score + word.length, 0);
+      return { description: row.description, contextScore };
+    }).sort((a, b) => b.contextScore - a.contextScore);
+    const { description: rootDescription = "", contextScore = 0 } = rankedRoots[0] || {};
+    const current = exactByCode.get(record.code);
+    if (!current || contextScore > current.contextScore)
+      exactByCode.set(record.code, { code: record.code, description: record.description, contextScore, rootDescription });
+  }
+  const exactRanked = [...exactByCode.values()].sort((a, b) => b.contextScore - a.contextScore);
+  const exactCandidate = exactRanked.length === 1
+    ? exactRanked[0]
+    : exactRanked[0]?.contextScore >= 12 && exactRanked[0].contextScore >= (exactRanked[1]?.contextScore || 0) + 6
+      ? exactRanked[0]
+      : null;
   if (exactCandidate) {
+    const exactRows = nom.rows.filter((row) => row.code === exactCandidate.code).sort((a, b) => a.indent - b.indent);
+    const rootRow = nom.rows.find((row) => row.indent === 0
+      && row.code.startsWith(exactCandidate.code.slice(0, 4))
+      && row.description === exactCandidate.rootDescription);
     return respond({
       status: "classified", code: exactCandidate.code, confidence: "magas",
-      path: hierarchy.filter((row) => exactCandidate.code.startsWith(row.code.slice(0, 4)) && row.code === exactCandidate.code),
-      reasoning: "GRI 1: a termék megnevezése pontosan megegyezik a NAV-nómenklatúra végleges termékmegnevezésével; a szín és más leíró módosítók nem írják felül a pontos termékazonosítást.",
+      path: [rootRow, exactRows.at(-1)].filter(Boolean).map((row) => ({ code: row.code, line: row.indent, productLine: row.productLine, description: row.description })),
+      reasoning: exactRanked.length === 1
+        ? "GRI 1: a termék megnevezése egyetlen NAV-nómenklatúra-sorral egyezik pontosan."
+        : "GRI 1: a több helyen előforduló pontos termékmegnevezést a teljes leírás és a vámtarifaszám fejezetszövege egyértelműsítette.",
       clarification: null, factsUsed: suppliedFacts, dataDate: index.dataDate,
       engine: "exact-nomenclature-match-v1",
     });
