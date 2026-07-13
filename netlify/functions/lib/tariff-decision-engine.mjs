@@ -23,6 +23,67 @@ function pathFor(codes, nomenclature) {
   });
 }
 
+function liveAnimalDecision(facts, nomenclature, dataDate) {
+  const a = facts.inferredFacts.attributes;
+  const profile = { id: "live_animal" };
+  if (!a.liveAnimalKnown) return {
+    ...clarification(profile, { id: "animal_state", question: "Milyen állapotban kerül forgalomba az állat vagy az állati eredetű áru?", options: [["Élő állat", "élő, egyedi állat"], ["Friss / hűtött test vagy hús", "vágott egész vagy féltest, friss vagy hűtött hús"], ["Fagyasztott hús", "fagyasztott hús"], ["Feldolgozott készítmény", "feldolgozott állati eredetű készítmény"], ["Eledel / állathoz való termék", "állateledel, takarmány vagy az állat számára készült termék"]] }, facts, dataDate),
+    reasoning: "Az állatfaj neve önmagában nem dönti el, hogy élő egyedről, vágott vagy feldolgozott állati termékről, illetve az állat számára készült áruról van-e szó.",
+    path: [],
+  };
+  if (a.animalClass === "mammal" && a.tariffSpecies === "other_mammal") return {
+    status: "classified", code: "0106190000", confidence: "magas",
+    path: pathFor(["0106000000", "0106110000", "0106190000"], nomenclature),
+    reasoning: "GRI 1 és 6: a leírás élő, másutt külön nem nevesített emlős egyedet azonosít; az eledel-, felszerelés- és feldolgozott állati termék szerepét a bemenet nem jelzi.",
+    clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  };
+  if (a.animalGroup === "reptile") return {
+    status: "classified", code: "0106200000", confidence: "magas",
+    path: pathFor(["0106000000", "0106200000"], nomenclature),
+    reasoning: "GRI 1 és 6: a leírás élő hüllőt azonosít.", clarification: null,
+    factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  };
+  if (a.animalGroup === "equine" && a.otherEquine) return {
+    status: "classified", code: "0101900000", confidence: "magas",
+    path: pathFor(["0101000000", "0101900000"], nomenclature),
+    reasoning: "GRI 1 és 6: élő szamár, öszvér vagy más, a ló alszáma alatt külön nem nevesített lóféle.", clarification: null,
+    factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  };
+  if (a.animalGroup === "ornamental_fish" || a.ornamentalFish) {
+    if (a.freshwaterOrnamental) return {
+      status: "classified", code: "0301110000", confidence: "magas",
+      path: pathFor(["0301000000", "0301110000", "0301110000"], nomenclature),
+      reasoning: "GRI 1 és 6: élő édesvízi díszhal.", clarification: null,
+      factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+    };
+    return { ...clarification(profile, { id: "ornamental_water", question: "A díszhal édesvízi vagy tengeri faj?", options: [["Édesvízi", "édesvízi díszhal"], ["Tengeri", "tengeri díszhal"]] }, facts, dataDate), reasoning: "A 0301 díszhalágon a víztípus választja szét a következő alszámot.", path: pathFor(["0301000000", "0301110000"], nomenclature) };
+  }
+  const groupQuestions = {
+    equine: ["0101000000", "Milyen lóféléről van szó, és fajtatiszta tenyészállat, vágásra szánt vagy más egyed?", [["Ló – tenyészállat", "ló, fajtatiszta tenyészállat"], ["Ló – vágásra", "ló, vágásra szánt"], ["Más lóféle", "szamár, öszvér vagy más lóféle"]]],
+    bovine: ["0102000000", "Milyen szarvasmarhaféléről van szó, és tenyésztési vagy vágási rendeltetésű?", [["Szarvasmarha – tenyészállat", "szarvasmarha, fajtatiszta tenyészállat"], ["Szarvasmarha – vágásra", "szarvasmarha, vágásra szánt"], ["Más szarvasmarhaféle", "más szarvasmarhaféle"]]],
+    pig: ["0103000000", "Házi sertésről vagy más sertésről van szó, és mekkora a tömege?", [["Házi sertés", "házi sertés, tömege megadva"], ["Más sertés", "nem házi sertés, tömege megadva"]]],
+    sheep_goat: ["0104000000", "Juh vagy kecske, és fajtatiszta tenyészállat-e?", [["Juh", "juh"], ["Kecske", "kecske"], ["Fajtatiszta tenyészállat", "fajtatiszta tenyészállat"]]],
+    poultry: ["0105000000", "Melyik baromfifajról van szó, és mekkora az egyed tömege?", [["Tyúk / csirke", "tyúk vagy csirke, tömege megadva"], ["Pulyka", "pulyka, tömege megadva"], ["Kacsa / liba / gyöngytyúk", "kacsa, liba vagy gyöngytyúk, tömege megadva"]]],
+    rabbit: ["0106000000", "Házinyúlról vagy más nyúlról van szó?", [["Házinyúl", "élő házinyúl"], ["Más nyúl", "élő üregi vagy mezei nyúl"]]],
+    bird: ["0106000000", "Milyen madárfajról van szó: ragadozó madár, papagáj, galamb vagy más madár?", [["Papagáj", "élő papagáj"], ["Galamb", "élő galamb"], ["Más madár", "más élő madár"]]],
+    insect: ["0106000000", "Méh vagy más élő rovar?", [["Méh", "élő méh"], ["Más rovar", "más élő rovar"]]],
+    fish: ["0301000000", "Díszhalról vagy más élő halfajról van szó?", [["Díszhal", "élő díszhal"], ["Más élő hal", "más élő hal, a faj megnevezésével"]]],
+    crustacean: ["0306000000", "Melyik rákfajról van szó, és valóban élő, friss/hűtött vagy más állapotú?", [["Homár / languszta", "élő homár vagy languszta"], ["Garnélarák", "élő garnélarák, a faj megnevezésével"], ["Más rákféle", "más élő rákféle, a faj megnevezésével"]]],
+    mollusc: ["0307000000", "Melyik puhatestű fajról van szó, és valóban élő, friss/hűtött vagy más állapotú?", [["Kagyló / osztriga", "élő kagyló vagy osztriga, a faj megnevezésével"], ["Csiga", "élő csiga, a faj megnevezésével"], ["Polip / tintahal", "élő polip vagy tintahal, a faj megnevezésével"]]],
+  };
+  const groupQuestion = groupQuestions[a.animalGroup];
+  if (groupQuestion) return {
+    ...clarification(profile, { id: `${a.animalGroup}_detail`, question: groupQuestion[1], options: groupQuestion[2] }, facts, dataDate),
+    reasoning: "Az élő állat szerepe és fő taxonómiai csoportja ismert; a következő alszámhoz a csoportspecifikus fajta-, faj-, tömeg- vagy rendeltetési adat szükséges.",
+    path: pathFor([groupQuestion[0]], nomenclature),
+  };
+  return {
+    ...clarification(profile, { id: "animal_taxonomy", question: "Melyik fő állatcsoportba tartozik az élő állat?", options: [["Emlős", "élő emlős állat"], ["Madár", "élő madár"], ["Hüllő", "élő hüllő"], ["Hal", "élő hal"], ["Rákféle", "élő rákféle"], ["Puhatestű / más gerinctelen", "élő puhatestű vagy más gerinctelen állat"]] }, facts, dataDate),
+    reasoning: "Az élő áruállapot már ismert, de az állatfaj még nincs a taxonómiai indexben; ezért anyag helyett a tarifális fejezetet meghatározó állatcsoportot kell pontosítani.",
+    path: [],
+  };
+}
+
 function eyewearDecision(facts, nomenclature, dataDate) {
   const a = facts.inferredFacts.attributes;
   const profile = { id: "eyewear" };
@@ -84,6 +145,7 @@ function footwearDecision(facts, nomenclature, dataDate) {
 }
 
 export function decideByProfiles(facts, nomenclature, dataDate) {
+  if (facts.concepts?.includes("live_animal")) return liveAnimalDecision(facts, nomenclature, dataDate);
   if (facts.concepts?.includes("eyewear")) return eyewearDecision(facts, nomenclature, dataDate);
   if (facts.concepts?.includes("footwear")) {
     const footwear = footwearDecision(facts, nomenclature, dataDate);
