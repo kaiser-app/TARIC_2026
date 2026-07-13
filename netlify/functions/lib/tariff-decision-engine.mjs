@@ -16,11 +16,31 @@ function passesAny(facts, tests = []) { return tests.some((test) => testConditio
 function passesAll(facts, tests = []) { return tests.every((test) => testCondition(facts, test)); }
 
 function pathFor(codes, nomenclature) {
-  return codes.map((code) => {
+  return codes.map((code, index) => {
     const rows = nomenclature.rows.filter((row) => row.code === code).sort((a, b) => a.indent - b.indent);
-    const row = rows[0];
+    const row = index === codes.length - 1 ? rows[rows.length - 1] : rows[0];
     return { code, line: row?.indent ?? 0, description: row?.description ?? "" };
   });
+}
+
+function eyewearDecision(facts, nomenclature, dataDate) {
+  const a = facts.inferredFacts.attributes;
+  const profile = { id: "eyewear" };
+  const ask = (id, question, options, reasoning, pathCodes = ["9004000000"]) => ({
+    ...clarification(profile, { id, question, options }, facts, dataDate),
+    reasoning, path: pathFor(pathCodes, nomenclature),
+  });
+  if (!a.sunglasses && !a.correctiveEyewear && !a.protectiveEyewear)
+    return ask("eyewear_type", "Milyen típusú szemüvegről van szó?", [["Napszemüveg", "napszemüveg"], ["Dioptriás / látásjavító", "dioptriás látásjavító szemüveg"], ["Védőszemüveg", "védőszemüveg"]], "A 9004 vámtarifaszámon belül a szemüveg rendeltetése választja szét a napszemüveget és a más szemüveget.");
+  if (a.sunglasses) {
+    if (a.opticallyWorkedLens) return { status: "classified", code: "9004101000", confidence: "magas", path: pathFor(["9004000000", "9004100000", "9004101000"], nomenclature), reasoning: "GRI 1 és 6: napszemüveg optikailag megmunkált lencsével.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+    if (a.plasticLens) return { status: "classified", code: "9004109100", confidence: "magas", path: pathFor(["9004000000", "9004100000", "9004109100", "9004109100"], nomenclature), reasoning: "GRI 1 és 6: más napszemüveg műanyag lencsével.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+    if (a.glassLens) return { status: "classified", code: "9004109900", confidence: "magas", path: pathFor(["9004000000", "9004100000", "9004109100", "9004109900"], nomenclature), reasoning: "GRI 1 és 6: más napszemüveg nem műanyag lencsével.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+    return ask("sunglass_lens", "A napszemüveg lencséje optikailag megmunkált, műanyagból készült, vagy más anyagú?", [["Optikailag megmunkált", "optikailag megmunkált lencsével"], ["Műanyag lencse", "műanyag lencsével"], ["Más anyagú lencse", "nem műanyag, más anyagú lencsével"]], "A napszemüveg 10 jegyű kódját a lencse optikai megmunkáltsága és anyaga választja szét.", ["9004000000", "9004100000"]);
+  }
+  if (a.plasticLens) return { status: "classified", code: "9004901000", confidence: "magas", path: pathFor(["9004000000", "9004900000", "9004901000"], nomenclature), reasoning: "GRI 1 és 6: más szemüveg műanyag lencsével.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+  if (a.glassLens) return { status: "classified", code: "9004909000", confidence: "magas", path: pathFor(["9004000000", "9004900000", "9004909000"], nomenclature), reasoning: "GRI 1 és 6: más szemüveg nem műanyag lencsével.", clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1" };
+  return ask("other_eyewear_lens", "A szemüveg lencséje műanyagból vagy más anyagból készült?", [["Műanyag lencse", "műanyag lencsével"], ["Más anyagú lencse", "nem műanyag, más anyagú lencsével"]], "A más szemüveg 10 jegyű kódját a lencse anyaga választja szét.", ["9004000000", "9004900000"]);
 }
 
 function clarification(profile, requirement, facts, dataDate) {
@@ -64,6 +84,7 @@ function footwearDecision(facts, nomenclature, dataDate) {
 }
 
 export function decideByProfiles(facts, nomenclature, dataDate) {
+  if (facts.concepts?.includes("eyewear")) return eyewearDecision(facts, nomenclature, dataDate);
   if (facts.concepts?.includes("footwear")) {
     const footwear = footwearDecision(facts, nomenclature, dataDate);
     if (footwear) return footwear;
