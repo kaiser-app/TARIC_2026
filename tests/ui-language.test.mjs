@@ -45,11 +45,15 @@ if (!mainSource.includes('import "./ui-fixes.css"'))
   throw new Error("Az UI javításokat tartalmazó stíluslap nincs betöltve.");
 
 if (!uiCss.includes("--content-block-gap:18px")
+  || !uiCss.includes("main{display:flex;flex-direction:column}")
+  || !uiCss.includes("main>.hero{order:2}")
+  || !uiCss.includes("main>.cnen-browser{order:3}")
+  || !uiCss.includes("main>.agent-panel{order:4}")
   || !uiCss.includes("main>.cnen-browser{margin:0 0 var(--content-block-gap)")
   || !uiCss.includes(".cnen-browser{height:650px")
   || !uiCss.includes("overflow-y:scroll")
   || !uiCss.includes("scrollbar-gutter:stable")
   || !uiCss.includes(".taric-code-input"))
-  throw new Error("A Tallózás elhelyezése, fix mérete, egységes térköze vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
+  throw new Error("A blokkcsere, a Tallózás fix mérete, egységes térköze vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: Tallózás a termékűrlap előtt, egységes térköz, HU tartalom, KN/TARIC-kódátvétel és kézi kódbevitel");
+console.log("OK UI: fejléc, Tallózás és termékűrlap kényszerített sorrendben; egységes térköz, HU tartalom, KN/TARIC-kódátvétel és kézi kódbevitel");
