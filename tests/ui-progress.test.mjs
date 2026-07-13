@@ -29,6 +29,10 @@ for (const marker of ['group.type === "AAF"', 'variants: aafGroups', 'group.vari
   if (!source.includes(marker)) throw new Error(`Hiányzó AAF-verziócsoportosítás: ${marker}`);
 console.log("OK AAF sorok egy sorba csoportosítva, lenyitható kiegészítő kódokkal");
 
+for (const marker of ['measureSectionKey', '["103", "107"]', '"customs"', '"tax"', '"other"', 'measure-section-title', 'Vámtételek', 'Adók', 'Egyéb intézkedések'])
+  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó intézkedésblokk-fejléc: ${marker}`);
+console.log("OK intézkedések típusváltáskor szakaszfejlécet kapnak");
+
 for (const marker of ["grid-template-columns:60px minmax(0,1fr) 90px 100px", "text-align:right", "width:100px"])
   if (!styles.includes(marker)) throw new Error(`Hiányzó fix kód-/jelvényoszlop igazítás: ${marker}`);
 console.log("OK intézkedési kódok jobb széle fix függőleges vonalra igazítva");
