@@ -46,6 +46,12 @@ const containsTerm = (text, term) => {
   return haystack.includes(` ${needle} `) || normalize(text).replace(/ /g, "").includes(needle.replace(/ /g, ""));
 };
 
+const mentionsAccessoryRole = (value) => {
+  const suffixes = ["tok", "tarto", "taska", "doboz", "huzat", "burkolat", "alkatresz"];
+  return normalize(value).split(" ").some((token) => suffixes.includes(token)
+    || suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix)));
+};
+
 const ignoredDictionaryTerms = new Set([
   "anyag", "aru", "termek", "eszkoz", "keszulek", "szerkezet",
   "fekete", "feher", "piros", "voros", "kek", "zold", "sarga", "barna", "szurke", "lila", "rozsaszin", "atlatszo", "szines",
@@ -103,7 +109,13 @@ export function analyzeProductInput(name, description, semanticIndex) {
   const concepts = [];
   let canonicalProduct = null;
   for (const [concept, terms] of Object.entries(conceptTerms)) {
-    const matches = terms.filter((term) => containsTerm(combinedText, term));
+    const nameMatches = terms.filter((term) => containsTerm(name, term));
+    const descriptionMatches = terms.filter((term) => containsTerm(description, term));
+    const matches = nameMatches.length
+      ? nameMatches
+      : mentionsAccessoryRole(description)
+        ? []
+        : descriptionMatches;
     if (matches.length) {
       canonicalProduct = concept;
       concepts.push(concept);
@@ -118,7 +130,7 @@ export function analyzeProductInput(name, description, semanticIndex) {
   const materials = [];
   for (const [material, terms] of Object.entries(materialTerms))
     if (terms.some((term) => containsTerm(combinedText, term))) materials.push(material);
-  materials.push(...dictionaryMaterials(matches));
+  const dictionaryMaterialHints = dictionaryMaterials(matches);
   const dictionaryFunctions = [...new Set(matches.map((item) => item.f).filter(Boolean))];
   const dictionaryCategories = [...new Set(matches.map((item) => item.c).filter(Boolean))];
   const dictionaryTerms = [...new Set(matches.flatMap((item) => [item.t, ...(item.s || [])]).filter(Boolean))];
@@ -133,6 +145,7 @@ export function analyzeProductInput(name, description, semanticIndex) {
     canonicalProduct,
     concepts: [...new Set(concepts)],
     materials: [...new Set(materials)],
+    materialHints: dictionaryMaterialHints,
     semanticIndexVersion: semanticIndex?.version || null,
     semanticMatches: matches.map((item) => ({ term: item.t, relevance: item.r, category: item.c, concept: item.concept || null })),
     semanticTerms: dictionaryTerms.join(" "),
@@ -157,7 +170,7 @@ export function analyzeProductInput(name, description, semanticIndex) {
         metalToeKnown: /fem (?:vedo )?cipoo?rr|fem labujjvedo|nincs fem|fem nelkul/.test(normalize(combinedText)),
         coversAnkle: (/bokat takar|bakancs/.test(normalize(combinedText))) && !/nem takar/.test(normalize(combinedText)),
         ankleKnown: /bokat takar|bokat nem takar|bokanal alacsony|bakancs/.test(normalize(combinedText)),
-        leatherUpper: /bor fels|borbol keszult fels|bor felsoresz/.test(normalize(combinedText)) || (concepts.includes("footwear") && materials.includes("leather")),
+        leatherUpper: /bor fels|borbol keszult fels|bor felsoresz/.test(normalize(combinedText)),
         insoleUnder24: /24 cm nel kisebb/.test(normalize(combinedText)),
         insoleAtLeast24: /legalabb 24 cm/.test(normalize(combinedText)),
         mensFootwear: /ferfi labbeli|ferfi cipo|ferfi bakancs/.test(normalize(combinedText)),
