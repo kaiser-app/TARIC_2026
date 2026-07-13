@@ -9,6 +9,10 @@ const cases = [
   ["MOBILTELEFON", "TOKKAK TÖLTŐVEL ÉS CSATLAKOZÓVAL, OKOS", "8517130000"],
   ["MOBILTELEFON", "TOKKAL, TÖLTŐVEL ÉS CSATLAKOZÓVAL, OKOS", "8517130000"],
   ["Mobiltelefon", "nyomógombos, alkalmazások futtatására nem alkalmas hagyományos telefon", "8517140000"],
+  ["TELEFON", "HAGYOMÁNYOS", "8517140000"],
+  ["TELEFON", "NEM OKOS", "8517140000"],
+  ["TELEFON", "HAGYOMÁNYOS VAGY NEM OKOS", "8517140000"],
+  ["TELEFON", "VEZETÉKES", "8517180000"],
   ["MOBILTELEFON TOK", "OKOS TELEFONHOZ, PVC-BŐL, ÜTÉSÁLLÓ", "3926909790"],
   ["Laptop", "2 kg-os hordozható számítógép CPU-val, billentyűzettel és kijelzővel", "8471300000"],
   ["Asztali számítógép", "önálló feldolgozóegység CPU-val, memóriával és SSD-vel", "8471500000"],
@@ -45,5 +49,13 @@ for (const [name, description, expected] of cases) {
   if (result.code !== expected || result.status === "clarification")
     throw new Error(`${name}: várt ${expected}, kapott ${result.code}; kérdés: ${result.clarification}`);
 }
+
+const genericPhoneResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "TELEFON", description: "" }),
+}));
+const genericPhone = await genericPhoneResponse.json();
+if (genericPhone.status !== "clarification" || !/mobil|vezetékes/i.test(genericPhone.clarification || "") || /anyag/i.test(genericPhone.clarification || ""))
+  throw new Error(`TELEFON: konkrét telefonfajta-kérdés helyett ezt kaptuk: ${genericPhone.clarification}`);
 
 console.log(`OK elektronikai regresszió: ${cases.length}/${cases.length} pontos kódegyezés`);
