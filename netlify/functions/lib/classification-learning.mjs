@@ -38,14 +38,14 @@ const conceptKnowledge = {
 };
 
 const materialTerms = {
-  concrete: ["beton", "betonbol"],
-  steel: ["acel", "acelbol", "rozsdamentes acel", "acelpenge", "acelsodrony", "acelhuzal", "femsodrony", "femhuzal", "vasdrot"],
-  leather: ["bor", "borbol"],
-  plastic: ["muanyag", "muanyagbol", "szilikon", "gumi", "pvc", "pvcbol", "polivinil klorid"],
-  cotton: ["pamut", "pamutbol"],
-  wood: ["fa", "fabol"],
-  glass: ["uveg", "uvegbol"],
-  textile: ["textil", "textilbol"],
+  concrete: ["beton", "betonbol", "concrete"],
+  steel: ["acel", "acelbol", "rozsdamentes acel", "acelpenge", "acelsodrony", "acelhuzal", "femsodrony", "femhuzal", "vasdrot", "steel", "stainless steel", "metal"],
+  leather: ["bor", "borbol", "leather"],
+  plastic: ["muanyag", "muanyagbol", "szilikon", "gumi", "pvc", "pvcbol", "polivinil klorid", "plastic", "silicone", "rubber", "polyvinyl chloride"],
+  cotton: ["pamut", "pamutbol", "cotton"],
+  wood: ["fa", "fabol", "wood"],
+  glass: ["uveg", "uvegbol", "glass"],
+  textile: ["textil", "textilbol", "textile", "fabric"],
 };
 
 const containsTerm = (text, term) => {
@@ -269,7 +269,8 @@ export function analyzeProductInput(name, description, semanticIndex) {
       capacityLitres: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\b/)?.[1] ?? null,
       thicknessMm: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*mm\b/)?.[1] ?? null,
       attributes: {
-        protective: /vedo|vedelem|boritas|burkolat|utesallo|utesved|karcallo|vizallo|porallo|leejtes|razkodasallo|shockproof|impact resistant/.test(normalize(combinedText)),
+        protective: /\b(?:vedo\w*|vedelm\w*|vedes\w*|borit\w*|burkol\w*|utesall\w*|utesved\w*|karcall\w*|vizall\w*|porall\w*|leejtes\w*|razkodasall\w*|protect\w*|protection|shockproof|impact resistant|impact protection)\b/.test(normalize(combinedText)),
+        carryingCase: /\b(?:hordtask\w*|penztarc\w*|zsebben hord\w*|kezitaskaban hord\w*|carrying case|wallet case|phone pouch)\b/.test(normalize(combinedText)),
         electric: /elektromos|villany|motoros|beepitett elektromotor/.test(normalize(combinedText)),
         foldingBlade: /osszecsukhato|behajthato|zsebkes|nem mereven rogzitett/.test(normalize(combinedText)),
         fixedBlade: /rogzitett penge|fix penge|merev penge|merevpenge/.test(normalize(combinedText)) ||
@@ -332,8 +333,34 @@ export function analyzeProductInput(name, description, semanticIndex) {
   };
 }
 
-export function beginClassification(name, description, semanticIndex) {
-  const facts = analyzeProductInput(name, description, semanticIndex);
+const allowedConfirmedMaterials = new Set(Object.keys(materialTerms));
+const allowedConfirmedAttributes = new Set([
+  "protective", "carryingCase", "electric", "foldingBlade", "fixedBlade", "wireConstruction",
+  "essentialMaterial", "sunglasses", "correctiveEyewear", "protectiveEyewear", "plasticLens",
+  "glassLens", "opticallyWorkedLens", "finishedGood",
+]);
+
+function applyConfirmedFacts(facts, confirmedFacts) {
+  if (!confirmedFacts || typeof confirmedFacts !== "object") return facts;
+  const materials = Array.isArray(confirmedFacts.materials)
+    ? confirmedFacts.materials.filter((material) => allowedConfirmedMaterials.has(material))
+    : [];
+  const attributes = Object.fromEntries(Object.entries(confirmedFacts.attributes || {})
+    .filter(([key, value]) => allowedConfirmedAttributes.has(key)
+      && (typeof value === "boolean" || typeof value === "string" || value === null)));
+  return {
+    ...facts,
+    materials: [...new Set([...(facts.materials || []), ...materials])],
+    inferredFacts: {
+      ...facts.inferredFacts,
+      attributes: { ...facts.inferredFacts?.attributes, ...attributes },
+    },
+    confirmedFacts: { materials, attributes },
+  };
+}
+
+export function beginClassification(name, description, semanticIndex, confirmedFacts = null) {
+  const facts = applyConfirmedFacts(analyzeProductInput(name, description, semanticIndex), confirmedFacts);
   const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   sessions.set(id, { id, createdAt: new Date().toISOString(), status: "processing", facts });
   if (sessions.size > 1000) sessions.delete(sessions.keys().next().value);
