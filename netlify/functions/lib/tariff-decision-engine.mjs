@@ -96,6 +96,72 @@ function liveAnimalDecision(facts, nomenclature, dataDate) {
   };
 }
 
+function electronicsDecision(facts, nomenclature, dataDate) {
+  const a = facts.inferredFacts.attributes;
+  const profile = { id: "electronics" };
+  const classified = (code, path, reasoning) => ({
+    status: "classified", code, confidence: "magas", path: pathFor(path, nomenclature), reasoning,
+    clarification: null, factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  });
+  const ask = (id, question, options, reasoning, path = []) => ({
+    ...clarification(profile, { id, question, options }, facts, dataDate), reasoning, path: pathFor(path, nomenclature),
+  });
+  switch (a.electronicsType) {
+    case "smartphone": return classified("8517130000", ["8517000000", "8517130000"], "GRI 1 és 6: mobilhálózathoz való okostelefon.");
+    case "other_mobile_phone": return classified("8517140000", ["8517000000", "8517140000"], "GRI 1 és 6: mobil- vagy más vezeték nélküli hálózathoz való, nem okostelefon készülék.");
+    case "mobile_phone": return ask("phone_type", "A mobiltelefon okostelefon, vagy alkalmazások futtatására nem alkalmas más mobiltelefon?", [["Okostelefon", "okostelefon, alkalmazások futtatására alkalmas"], ["Más mobiltelefon", "nem okostelefon, más mobiltelefon"]], "A 8517 13 és 8517 14 alszámot az okostelefon-jelleg választja szét.", ["8517000000"]);
+    case "portable_computer": return classified("8471300000", ["8471000000", "8471300000"], "GRI 1 és 6: legfeljebb 10 kg-os hordozható automatikus adatfeldolgozó gép.");
+    case "processing_unit": return classified("8471500000", ["8471000000", "8471500000"], "GRI 1 és 6: önálló automatikus adatfeldolgozó feldolgozóegység.");
+    case "keyboard": return classified("8471606000", ["8471000000", "8471600000", "8471606000"], "GRI 1 és 6: automatikus adatfeldolgozó gép billentyűzet-inputegysége.");
+    case "computer_mouse":
+    case "scanner": return classified("8471607000", ["8471000000", "8471600000", "8471607000"], "GRI 1 és 6: más input- vagy outputegység automatikus adatfeldolgozó géphez.");
+    case "printer": return a.computerConnectable
+      ? classified("8443321000", ["8443000000", "8443320000", "8443321000"], "GRI 1 és 6: automatikus adatfeldolgozó géphez vagy hálózathoz csatlakoztatható nyomtató.")
+      : ask("printer_connection", "A nyomtató számítógéphez vagy hálózathoz csatlakoztatható?", [["Igen", "számítógéphez vagy hálózathoz csatlakoztatható nyomtató"], ["Nem", "számítógéphez vagy hálózathoz nem csatlakoztatható nyomtató"]], "A 8443 alszámait a csatlakoztathatóság és a működés választja szét.", ["8443000000"]);
+    case "router": return classified("8517620000", ["8517000000", "8517620000"], "GRI 1 és 6: adatok vételére, átalakítására és továbbítására szolgáló kapcsoló- vagy útvonalválasztó berendezés.");
+    case "solid_state_storage": return a.storageRecorded === false
+      ? classified("8523511000", ["8523000000", "8523510000", "8523511000"], "GRI 1 és 6: felvételt nem tartalmazó szilárd, állandó nem felejtő tárolóeszköz.")
+      : a.storageRecorded === true
+        ? classified("8523519000", ["8523000000", "8523510000", "8523519000"], "GRI 1 és 6: felvételt tartalmazó szilárd, állandó nem felejtő tárolóeszköz.")
+        : ask("storage_recording", "Tartalmaz az SSD vagy pendrive gyárilag rögzített adatot vagy más felvételt?", [["Nem tartalmaz", "felvételt nem tartalmazó tárolóeszköz"], ["Tartalmaz", "felvételt tartalmazó tárolóeszköz"]], "A 8523 51 végkódját a rögzített tartalom jelenléte választja szét.", ["8523000000", "8523510000"]);
+    case "headphones": return classified("8518300000", ["8518000000", "8518300000"], "GRI 1 és 6: fejhallgató vagy fülhallgató, mikrofonnal egybeépítve is.");
+    case "speaker": return a.speakerCount === "single"
+      ? classified("8518210000", ["8518000000", "8518210000"], "GRI 1 és 6: egy hangszóró dobozba szerelve.")
+      : a.speakerCount === "multiple"
+        ? classified("8518220000", ["8518000000", "8518220000"], "GRI 1 és 6: több hangszóró ugyanabba a dobozba szerelve.")
+        : ask("speaker_count", "Egy vagy több hangszóró van ugyanabba a dobozba szerelve?", [["Egy hangszóró", "egy hangszóró dobozba szerelve"], ["Több hangszóró", "több hangszóró ugyanabba a dobozba szerelve"]], "A 8518 21 és 8518 22 alszámot a dobozba szerelt hangszórók száma választja szét.", ["8518000000"]);
+    case "digital_camera": return classified("8525810000", ["8525000000", "8525810000"], "GRI 1 és 6: digitális fényképezőgép.");
+    case "television": return a.lcdScreen
+      ? classified("8528724000", ["8528000000", "8528720000", "8528724000"], "GRI 1 és 6: színes televízió-vevőkészülék LCD-képernyővel.")
+      : ask("tv_display", "Milyen megjelenítési technológiával működik a televízió képernyője?", [["LCD / LED", "folyadékkristályos LCD vagy LED-háttérvilágítású képernyő"], ["Más", "nem LCD technológiájú színes televízió"]], "A színes televízió végkódját a megjelenítési technológia választja szét.", ["8528000000", "8528720000"]);
+    case "computer_monitor": return a.computerConnectable
+      ? classified("8528521000", ["8528000000", "8528520000", "8528521000"], "GRI 1 és 6: számítógéphez közvetlenül csatlakoztatható, elsősorban azzal használt monitor.")
+      : ask("monitor_use", "A monitor közvetlenül számítógéphez csatlakoztatható és elsősorban azzal használatos?", [["Igen", "számítógéphez közvetlenül csatlakoztatható és azzal használatos monitor"], ["Nem", "más videomonitor"]], "A 8528 monitorágát a számítógépes rendeltetés választja szét.", ["8528000000"]);
+    case "battery_charger": return classified("8504406090", ["8504000000", "8504400000", "8504406000", "8504406090"], "GRI 1 és 6: más akkumulátortöltő, nem polgári repülési célra.");
+    case "power_bank": return classified("8507600090", ["8507000000", "8507600000", "8507600090"], "GRI 1 és 6: más lítium-ion akkumulátor.");
+    case "microwave_oven": return classified("8516500000", ["8516000000", "8516500000"], "GRI 1 és 6: mikrohullámú sütő.");
+    case "hair_dryer": return classified("8516310000", ["8516000000", "8516310000"], "GRI 1 és 6: elektrotermikus hajszárító.");
+    case "electric_shaver": return classified("8510100000", ["8510000000", "8510100000"], "GRI 1 és 6: beépített elektromotoros villanyborotva.");
+    case "game_console": return classified("9504500000", ["9504000000", "9504500000"], "GRI 1 és 6: videojáték-konzol.");
+    case "vacuum_cleaner": {
+      const power = Number(a.vacuumPowerW);
+      const capacity = Number(String(a.dustCapacityLitres || "").replace(",", "."));
+      return power > 0 && power <= 1500 && capacity > 0 && capacity <= 20
+        ? classified("8508110000", ["8508000000", "8508110000"], "GRI 1 és 6: legfeljebb 1500 W teljesítményű, legfeljebb 20 literes porzsákkal vagy tartállyal rendelkező porszívó.")
+        : ask("vacuum_limits", "Legfeljebb 1500 W a porszívó teljesítménye, és legfeljebb 20 liter a porzsák vagy portartály űrtartalma?", [["Mindkettő igen", "teljesítménye legfeljebb 1500 W és portartálya legfeljebb 20 liter"], ["Valamelyik nem", "teljesítménye meghaladja az 1500 W-ot vagy portartálya meghaladja a 20 litert"]], "A 8508 alszámát a motorteljesítmény és a portartály térfogata választja szét.", ["8508000000"]);
+    }
+    case "washing_machine": {
+      const capacity = Number(String(a.washingCapacityKg || "").replace(",", "."));
+      if (a.fullyAutomaticWashing && capacity > 6 && capacity <= 10)
+        return classified("8450119000", ["8450000000", "8450110000", "8450119000"], "GRI 1 és 6: teljesen automata, 6 kg-ot meghaladó, de legfeljebb 10 kg szárazruha-kapacitású mosógép.");
+      if (a.fullyAutomaticWashing && capacity > 0 && capacity <= 6)
+        return classified("8450111100", ["8450000000", "8450110000", "8450111100"], "GRI 1 és 6: teljesen automata, legfeljebb 6 kg szárazruha-kapacitású mosógép.");
+      return ask("washing_capacity", "A mosógép teljesen automata, és mekkora a szárazruha-kapacitása?", [["Automata, legfeljebb 6 kg", "teljesen automata, legfeljebb 6 kg szárazruha-kapacitással"], ["Automata, 6–10 kg", "teljesen automata, 6 kg feletti, legfeljebb 10 kg kapacitással"], ["Más", "nem teljesen automata vagy 10 kg feletti kapacitású"]], "A 8450 alszámát az automatizáltság és a szárazruha-kapacitás választja szét.", ["8450000000"]);
+    }
+    default: return null;
+  }
+}
+
 function eyewearDecision(facts, nomenclature, dataDate) {
   const a = facts.inferredFacts.attributes;
   const profile = { id: "eyewear" };
@@ -158,6 +224,7 @@ function footwearDecision(facts, nomenclature, dataDate) {
 
 export function decideByProfiles(facts, nomenclature, dataDate) {
   if (facts.concepts?.includes("live_animal")) return liveAnimalDecision(facts, nomenclature, dataDate);
+  if (facts.concepts?.includes("electronics")) return electronicsDecision(facts, nomenclature, dataDate);
   if (facts.concepts?.includes("eyewear")) return eyewearDecision(facts, nomenclature, dataDate);
   if (facts.concepts?.includes("footwear")) {
     const footwear = footwearDecision(facts, nomenclature, dataDate);
