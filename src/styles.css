@@ -18,3 +18,17 @@ footer{padding:30px 0 50px;color:#738078;font-size:12px}@media(max-width:850px){
 @media(max-width:850px){.hero{grid-template-columns:1fr;align-items:start}.code-card{width:100%;margin-top:0;min-height:112px}}
 @media(max-width:700px){.hero h1{font-size:clamp(25px,7vw,36px)}}
 .measure-groups{display:grid;gap:9px}.measure-group{border:1px solid #e1e7e3;border-radius:10px;background:#f7f9f7;overflow:hidden}.measure-group summary{display:grid;grid-template-columns:60px minmax(0,1fr) 90px 100px;gap:12px;align-items:center;padding:14px;cursor:pointer;list-style:none}.measure-group summary::-webkit-details-marker{display:none}.measure-group summary b{color:#087247}.measure-group summary>em{font-style:normal;color:#62766a;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;white-space:nowrap;width:100%}.measure-group summary small{background:#e2efe7;color:#126443;border-radius:999px;padding:4px 8px}.measure-badges{display:flex;gap:6px;justify-content:flex-end;width:100px}.condition-list{background:#fff;border-top:1px solid #e1e7e3;padding:8px 14px}.condition-list>div{display:grid;grid-template-columns:90px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid #eef1ef;font-size:13px}.condition-list>div:last-child{border-bottom:0}.condition-list code{font-weight:800;color:#315d49}.variant-list{background:#fff;border-top:1px solid #e1e7e3;padding:6px 14px}.variant-list>div{display:grid;grid-template-columns:90px 1fr 160px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #eef1ef;font-size:13px}.variant-list>div:last-child{border-bottom:0}.variant-list code{font-weight:900;color:#087247}.variant-list em{font-style:normal;color:#62766a;text-align:right}.variant-conditions{grid-column:2/-1;display:grid;gap:5px}.variant-conditions small{background:#f4f8f5;border-radius:6px;padding:6px 8px;color:#466256}@media(max-width:700px){.measure-group summary{grid-template-columns:50px 1fr}.measure-group summary>em,.measure-badges{grid-column:2;width:auto}.measure-group summary>em{text-align:left}.measure-badges{justify-content:flex-start}.condition-list>div,.variant-list>div{grid-template-columns:1fr}.variant-list em{text-align:left}.variant-conditions{grid-column:1}}
+
+/* Visszafogott vizuális hierarchia: az eredmény a főszereplő, a lenyitható vezérlők másodlagosak. */
+.collapsible-result>summary,.calculation-card>summary{padding:18px 22px;font-size:16px;font-weight:650;color:#32433a}
+.collapsible-result[open]>summary,.calculation[open]>summary{border-bottom-color:#e5ebe7}
+.collapsible-body{padding:18px 22px 22px}
+.calculation>summary{font-weight:650;color:#365a49}
+.calculation-card .calculation-body{padding:18px 22px 22px}
+.collapsible-result .count{background:#edf5f0;color:#47715d;font-weight:600;letter-spacing:.05em;padding:5px 8px}
+.measure-group summary{padding:12px 14px;color:#2f3f37;font-weight:450}
+.measure-group summary b{font-weight:750;color:#167052}
+.measure-group summary small{background:#edf5f0;color:#47715d;font-weight:600}
+.agent-submit{font-weight:700;transition:background-color .18s,color .18s,opacity .18s}
+.agent-submit.is-loading,.agent-submit.is-loading:disabled{background:#6f8278;color:#f8fbf9;font-weight:600;opacity:1;cursor:wait}
+.agent-submit.is-loading:hover{background:#6f8278}
