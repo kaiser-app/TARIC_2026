@@ -30,6 +30,14 @@ main>.grid{margin:var(--content-block-gap) 0 22px}
 .cnen-browser-grid{flex:1;min-height:0;max-height:none}
 .cnen-results,.cnen-detail{min-height:0;overflow-y:scroll;scrollbar-gutter:stable}
 
+/* A jobb oldali részletezőben az áruosztály és az árucsoport külön, jól olvasható hierarchiablokk. */
+.cnen-hierarchy{display:grid;gap:8px;margin:12px 0 14px;padding:10px 12px;border:1px solid #dce7e0;border-radius:12px;background:#f5f9f6}
+.cnen-hierarchy>div{display:grid;grid-template-columns:minmax(78px,auto) 1fr;gap:10px;align-items:start}
+.cnen-hierarchy dt{font-size:12px;font-weight:800;color:#476557;text-transform:uppercase;letter-spacing:.04em}
+.cnen-hierarchy dd{display:flex;gap:9px;align-items:flex-start;margin:0;min-width:0}
+.cnen-hierarchy dd code{flex:0 0 auto;min-width:30px;color:#15583b;font-weight:850}
+.cnen-hierarchy dd span{line-height:1.42;color:#243f33}
+
 .cnen-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .cnen-use-code{min-height:37px;border:0;border-radius:10px;background:#185c3e;color:#fff;padding:8px 12px;font-weight:750;cursor:pointer}
 .cnen-use-code:hover{background:#124a31}
@@ -39,4 +47,5 @@ main>.grid{margin:var(--content-block-gap) 0 22px}
   .cnen-browser-grid{max-height:none}
   .cnen-results{max-height:270px}
   .cnen-detail{max-height:440px}
+  .cnen-hierarchy>div{grid-template-columns:1fr;gap:3px}
 }
