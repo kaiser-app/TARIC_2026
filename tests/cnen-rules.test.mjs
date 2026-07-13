@@ -11,10 +11,13 @@ const evidence = (code) => {
 };
 
 if (index.source.documentDate !== "2026-02-13" || index.source.consolidation !== "016.001"
-  || index.source.contentFormat !== "bilingual-range-resolved" || index.recordCount !== 2619)
+  || index.source.contentFormat !== "bilingual-range-resolved" || index.recordCount !== 2672)
   throw new Error("A kétnyelvű CNEN-forrás verziója vagy rekordszáma hibás.");
 if (!index.source.languages?.includes("EN") || !index.source.languages?.includes("HU")
-  || index.pairing?.matched !== 2619 || index.pairing?.scopeDiscrepancies !== 4)
+  || index.pairing?.matched !== 2671
+  || index.pairing?.monolingualSupplemental !== 1
+  || index.pairing?.generalRecords !== 41
+  || index.pairing?.scopeDiscrepancies !== 4)
   throw new Error("A magyar–angol párosítás metaadatai hibásak.");
 if (!index.coverage || index.coverage.missingKn8 !== index.coverage.totalKn8 - index.coverage.explainedKn8)
   throw new Error("A KN8-lefedettségi összesítés hibás.");
@@ -25,7 +28,8 @@ if (!smartphone.some((item) => /mobile phones/i.test(item.excerpt) && /mobiltele
   || !traditional.some((item) => item.mappedFromOlderCode))
   throw new Error("A kétnyelvű mobiltelefon-magyarázat vagy a 2019→2026 megfeleltetés hiányzik.");
 
-const rangeRecord = index.records.find((record) => record.s === "range");
+const rangeRecord = index.records.find((record) => record.s === "range"
+  && record.c?.length === 2 && record.c.every((code) => code.length >= 4));
 if (!rangeRecord) throw new Error("A tartományrekordok elvesztek.");
 const lower = rangeRecord.c[0].padEnd(8, "0"), upper = rangeRecord.c.at(-1).padEnd(8, "9");
 const currentInsideRange = Object.keys(index.currentLookup).filter((code) => code >= lower && code <= upper);
