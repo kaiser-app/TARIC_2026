@@ -2,7 +2,14 @@ import agent from "../netlify/functions/tariff-agent.mjs";
 
 const cases = [
   ["Mobiltelefon", "POCO F7 Pro, Android rendszerű 5G okostelefon", "8517130000"],
+  ["TELEFON, OKOS", "", "8517130000"],
+  ["TELEFON", "OKOS", "8517130000"],
+  ["OKOS TELEFON", "", "8517130000"],
+  ["MOBILTELEFON", "OKOS", "8517130000"],
+  ["MOBILTELEFON", "TOKKAK TÖLTŐVEL ÉS CSATLAKOZÓVAL, OKOS", "8517130000"],
+  ["MOBILTELEFON", "TOKKAL, TÖLTŐVEL ÉS CSATLAKOZÓVAL, OKOS", "8517130000"],
   ["Mobiltelefon", "nyomógombos, alkalmazások futtatására nem alkalmas hagyományos telefon", "8517140000"],
+  ["MOBILTELEFON TOK", "OKOS TELEFONHOZ, PVC-BŐL, ÜTÉSÁLLÓ", "3926909790"],
   ["Laptop", "2 kg-os hordozható számítógép CPU-val, billentyűzettel és kijelzővel", "8471300000"],
   ["Asztali számítógép", "önálló feldolgozóegység CPU-val, memóriával és SSD-vel", "8471500000"],
   ["Tablet", "érintőképernyős hordozható automatikus adatfeldolgozó gép", "8471300000"],

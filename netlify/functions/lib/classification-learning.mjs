@@ -22,7 +22,7 @@ const conceptTerms = {
   aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
   sword: ["kard", "pallos", "pallos", "szablya", "katana", "szamurajkard", "szamuraj kard"],
   electronics: [
-    "mobiltelefon", "okostelefon", "smartphone", "laptop", "notebook", "asztali szamitogep", "tablet",
+    "mobiltelefon", "okostelefon", "okos telefon", "smartphone", "laptop", "notebook", "asztali szamitogep", "tablet",
     "szamitogep billentyuzet", "billentyuzet", "szamitogepes eger", "computer mouse", "dokumentszkenner", "szkenner",
     "nyomtato", "router", "ssd", "pendrive", "usb pendrive", "fejhallgato", "fulhallgato", "hangszoro", "hangfal",
     "digitalis fenykepezogep", "televizio", "monitor", "akkumulatortolto", "power bank", "mikrohullamu suto",
@@ -58,6 +58,21 @@ const containsTerm = (text, term) => {
     const tokens = normalize(text).split(" ").filter(Boolean);
     if (tokens.some((token) => allowedSuffixes.some((suffix) => token === `${needle}${suffix}`))) return true;
   }
+  // A termékmegnevezések gyakran adatbázisos, fordított szórendben vagy
+  // írásjellel elválasztva érkeznek (pl. „telefon, okos”). A több szavas,
+  // ismert fogalmak elemeit ezért rövid szövegen belül szórendtől függetlenül
+  // is összekapcsoljuk. Egyetlen szót továbbra sem keresünk más szó belsejében.
+  if (needle.includes(" ")) {
+    const required = needle.split(" ").filter(Boolean);
+    const available = normalize(text).split(" ").filter(Boolean);
+    const counts = (items) => items.reduce((result, item) => {
+      result.set(item, (result.get(item) || 0) + 1);
+      return result;
+    }, new Map());
+    const neededCounts = counts(required);
+    const availableCounts = counts(available);
+    if ([...neededCounts].every(([token, count]) => (availableCounts.get(token) || 0) >= count)) return true;
+  }
   // Egybeírt összetételeket csak több szóból álló ismert fogalomnál kapcsolunk
   // össze (pl. „mobil telefon tok” → „mobiltelefontok”). Az egy szavas,
   // különösen rövid szinonimák nem egyezhetnek más szavak belsejében
@@ -68,8 +83,9 @@ const containsTerm = (text, term) => {
 
 const mentionsAccessoryRole = (value) => {
   const suffixes = ["tok", "tarto", "taska", "doboz", "huzat", "burkolat", "alkatresz"];
+  const productHeads = ["telefon", "mobil", "tablet", "laptop", "szemuveg", "kamera", "fenykepezo", "fulhallgato", "fejhallgato", "hangszoro", "keszulek", "vedo"];
   return normalize(value).split(" ").some((token) => suffixes.includes(token)
-    || suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix)));
+    || productHeads.some((head) => token.startsWith(head) && suffixes.some((suffix) => token.endsWith(suffix))));
 };
 
 const animalStateFrom = (value) => {
@@ -92,9 +108,15 @@ const electronicsTypeFrom = (name, description) => {
   const text = normalize(`${name} ${description}`);
   if (/akkumulatortolto|telefon tolto|halozati tolto/.test(product)) return "battery_charger";
   if (/power bank|powerbank/.test(product)) return "power_bank";
-  if (/mobiltelefon|okostelefon|smartphone/.test(product)) {
-    if (/nyomogombos|hagyomanyos|alkalmazasok futtatasara nem alkalmas|nem okostelefon/.test(text)) return "other_mobile_phone";
-    if (/okostelefon|smartphone|android|\bios\b|\b5g\b|erintokepernyo|alkalmazas/.test(text)) return "smartphone";
+  const namedAsMobilePhone = /mobiltelefon|okostelefon|smartphone/.test(product);
+  const nonSmartphoneMentioned = /nyomogombos|hagyomanyos|alkalmazasok futtatasara nem alkalmas|nem okostelefon|nem okos\b/.test(text);
+  const smartphoneMentioned = !nonSmartphoneMentioned && (/okostelefon|smartphone/.test(text)
+    || containsTerm(text, "okos telefon")
+    || (namedAsMobilePhone && /\bokos\b/.test(text)));
+  const mobilePhoneMentioned = namedAsMobilePhone || smartphoneMentioned;
+  if (mobilePhoneMentioned) {
+    if (nonSmartphoneMentioned) return "other_mobile_phone";
+    if (smartphoneMentioned || /android|\bios\b|\b5g\b|erintokepernyo|alkalmazas/.test(text)) return "smartphone";
     return "mobile_phone";
   }
   if (/laptop|notebook|tablet/.test(product)) return "portable_computer";
@@ -180,11 +202,18 @@ export function analyzeProductInput(name, description, semanticIndex) {
   for (const [concept, terms] of Object.entries(conceptTerms)) {
     const nameMatches = terms.filter((term) => containsTerm(name, term));
     const descriptionMatches = terms.filter((term) => containsTerm(description, term));
+    const combinedMatches = terms.filter((term) => containsTerm(combinedText, term));
+    const nameIsAccessory = mentionsAccessoryRole(name);
+    const contextIsAccessory = nameIsAccessory || mentionsAccessoryRole(description);
     const matches = nameMatches.length
-      ? concept === "live_animal" && mentionsAnimalProductRole(combinedText) && !mentionsLiveAnimal(combinedText) ? [] : nameMatches
-      : mentionsAccessoryRole(description)
+      ? nameIsAccessory && concept !== "phone_case"
         ? []
-        : descriptionMatches;
+        : concept === "live_animal" && mentionsAnimalProductRole(combinedText) && !mentionsLiveAnimal(combinedText) ? [] : nameMatches
+      : contextIsAccessory && concept !== "phone_case"
+        ? []
+        : descriptionMatches.length
+          ? descriptionMatches
+          : combinedMatches;
     if (matches.length) {
       canonicalProduct = concept;
       concepts.push(concept);
