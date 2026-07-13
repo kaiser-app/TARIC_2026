@@ -102,6 +102,8 @@ function scoreText(item, query) {
 
 function recordsForCurrentCode(index, requestedCode) {
   const normalized = digits(requestedCode);
+  const exact = normalized.length >= 10 ? index.exactLookup?.[normalized.slice(0, 10)] || [] : [];
+  if (exact.length) return exact.map((id) => index.records[id]).filter(Boolean);
   const cn8 = normalized.slice(0, 8);
   const ids = index.currentLookup?.[cn8] || [];
   if (ids.length) return ids.map((id) => index.records[id]).filter(Boolean);
