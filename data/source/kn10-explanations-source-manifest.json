@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "createdAt": "2026-07-13",
+  "rowsPerLanguage": 25820,
+  "pairedRows": 25820,
+  "explainedRows": 19538,
+  "rowsWithoutExplanation": 6282,
+  "uniqueExplanationKeys": 2447,
+  "fieldParity": [
+    "aruosztaly",
+    "arucsoport",
+    "vtsz",
+    "vtsz10",
+    "indent",
+    "product_line",
+    "megnevezes",
+    "magyarazat_kulcs"
+  ],
+  "sourceFiles": [
+    {
+      "name": "kn10_magyarazatok_HU.zip",
+      "sha256": "eb7971f59e2a9413c3f5c863dd04d84ca05934ed664870b859ed540264d8a6e2",
+      "size": 1718505
+    },
+    {
+      "name": "kn10_magyarazatok_EN.zip",
+      "sha256": "619d50c235cbb1f937e65fc83ec93d34a0dddfab9408c0742799e4080f416015",
+      "size": 1795907
+    }
+  ]
+}
