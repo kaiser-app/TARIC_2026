@@ -32,7 +32,7 @@ const conceptKnowledge = {
 
 const materialTerms = {
   concrete: ["beton", "betonbol"],
-  steel: ["acel", "acelbol", "rozsdamentes acel", "acelpenge"],
+  steel: ["acel", "acelbol", "rozsdamentes acel", "acelpenge", "acelsodrony", "acelhuzal", "femsodrony", "femhuzal", "vasdrot"],
   leather: ["bor", "borbol"],
   plastic: ["muanyag", "muanyagbol", "szilikon", "gumi", "pvc", "pvcbol", "polivinil klorid"],
   cotton: ["pamut", "pamutbol"],
@@ -44,7 +44,19 @@ const materialTerms = {
 const containsTerm = (text, term) => {
   const haystack = ` ${normalize(text)} `;
   const needle = normalize(term);
-  return haystack.includes(` ${needle} `) || normalize(text).replace(/ /g, "").includes(needle.replace(/ /g, ""));
+  if (!needle) return false;
+  if (haystack.includes(` ${needle} `)) return true;
+  if (!needle.includes(" ") && needle.length >= 4) {
+    const allowedSuffixes = ["bol", "tol", "rol", "ban", "ben", "val", "vel", "kent", "nak", "nek", "os", "es", "as", "i"];
+    const tokens = normalize(text).split(" ").filter(Boolean);
+    if (tokens.some((token) => allowedSuffixes.some((suffix) => token === `${needle}${suffix}`))) return true;
+  }
+  // Egybeírt összetételeket csak több szóból álló ismert fogalomnál kapcsolunk
+  // össze (pl. „mobil telefon tok” → „mobiltelefontok”). Az egy szavas,
+  // különösen rövid szinonimák nem egyezhetnek más szavak belsejében
+  // (pl. „eb” az „ebbe”, „póló” a „hajápoló” szóban).
+  return needle.includes(" ") && needle.replace(/ /g, "").length >= 6
+    && normalize(text).replace(/ /g, "").includes(needle.replace(/ /g, ""));
 };
 
 const mentionsAccessoryRole = (value) => {
@@ -57,10 +69,11 @@ const animalStateFrom = (value) => {
   const text = normalize(value);
   if (/\belo\b/.test(text)) return "live";
   if (/\b(?:eledel|allateledel|takarmany|tap|jutalomfalat|ragoka|poraz|nyakorv|ham|szajkosar|jatekszer|gyogyszer)\b/.test(text)) return "animal_product";
-  if (/\b(?:feldolgozott|keszitmeny|konzerv|szaritott|sozott|fustolt)\b/.test(text)) return "processed";
+  if (/\b(?:feldolgozott|elkeszitett|keszitmeny|konzerv|konzervalt|kikeszitett|cserzett|szaritott|aszalt|sozott|fustolt)\b/.test(text)) return "processed";
   if (/\b(?:fagyasztott|melyhutott)\b/.test(text)) return "frozen";
   if (/\b(?:friss|hutott)\b/.test(text)) return "fresh_chilled";
   if (/\b(?:hus|vagott|felezett|felbevagott|feltest)\b|hasitott test/.test(text)) return "carcass_meat";
+  if (/\b(?:szorme|műszorme|muszorme|szor|gyapju|bor|bel|belsoseg|ver|tej)\b|\b(?:szorebol|gyapjabol|borbol)\b/.test(text)) return "animal_product";
   if (/\b\d+(?:[.,]\d+)?\s*(?:eves|honapos|hetes)\b|\b(?:torzskonyvezett|fajtatiszta|tenyesztesre|him|nosteny)\b/.test(text)) return "live";
   return "unknown";
 };
@@ -104,8 +117,10 @@ function semanticMatches(name, combinedText, semanticIndex) {
     }
   }
   if (!ids.size) addNgrams(words);
-  return [...ids].map((id) => semanticIndex.records[id]).filter(Boolean)
-    .sort((a, b) => (a.r === "H" ? -1 : 0) - (b.r === "H" ? -1 : 0)).slice(0, 8);
+  const ranked = [...ids].map((id) => semanticIndex.records[id]).filter(Boolean)
+    .sort((a, b) => (a.r === "H" ? -1 : 0) - (b.r === "H" ? -1 : 0));
+  const highRelevance = ranked.filter((record) => record.r === "H");
+  return (highRelevance.length ? highRelevance : ranked).slice(0, 8);
 }
 
 function dictionaryMaterials(matches) {
@@ -138,7 +153,11 @@ export function analyzeProductInput(name, description, semanticIndex) {
     }
   }
   const matches = semanticMatches(name, combinedText, semanticIndex);
-  const indexedConcepts = matches.map((item) => item.concept).filter((concept) => concept && !(concept === "live_animal" && mentionsAnimalProductRole(combinedText) && !mentionsLiveAnimal(combinedText)));
+  const indexedConcepts = matches.map((item) => item.concept).filter((concept) => concept
+    && !(concept === "live_animal" && mentionsAnimalProductRole(combinedText) && !mentionsLiveAnimal(combinedText))
+    && !((mentionsAccessoryRole(name) || mentionsAccessoryRole(description))
+      && !(conceptTerms[concept] || []).some((term) => containsTerm(name, term))
+      && concept !== "phone_case"));
   concepts.push(...indexedConcepts);
   if (!canonicalProduct && indexedConcepts.length) canonicalProduct = indexedConcepts[0];
   if (/\belo allat\b/.test(normalize(combinedText)) && !concepts.includes("live_animal")) {
@@ -203,8 +222,8 @@ export function analyzeProductInput(name, description, semanticIndex) {
         sunglasses: Boolean(indexedAttributes.sunglasses) || /napszemuveg|napvedo szemuveg/.test(normalize(combinedText)),
         correctiveEyewear: Boolean(indexedAttributes.correctiveEyewear) || /dioptrias|latasjavito|korrekcios/.test(normalize(combinedText)),
         protectiveEyewear: Boolean(indexedAttributes.protectiveEyewear) || /vedoszemuveg|munkavedelmi szemuveg/.test(normalize(combinedText)),
-        plasticLens: Boolean(indexedAttributes.plasticLens) || /muanyag lencse|polikarbonat lencse/.test(normalize(combinedText)),
-        glassLens: Boolean(indexedAttributes.glassLens) || /uveg lencse|asvanyi uveg/.test(normalize(combinedText)),
+        plasticLens: Boolean(indexedAttributes.plasticLens) || /\b(?:muanyag|polikarbonat)\b.{0,60}\blencse(?:vel|bol|s)?\b|\blencse(?:vel|bol|s)?\b.{0,60}\b(?:muanyag|polikarbonat)\b|\b(?:muanyag|polikarbonat)lencse\b/.test(normalize(combinedText)),
+        glassLens: Boolean(indexedAttributes.glassLens) || /\b(?:uveg|asvanyi uveg)\b.{0,60}\blencse(?:vel|bol|s)?\b|\blencse(?:vel|bol|s)?\b.{0,60}\b(?:uveg|asvanyi uveg)\b|\buveglencse\b/.test(normalize(combinedText)),
         opticallyWorkedLens: Boolean(indexedAttributes.opticallyWorkedLens) || /optikailag megmunkalt lencse|dioptrias/.test(normalize(combinedText)),
         animalClass: indexedAttributes.animalClass || null,
         tariffSpecies: indexedAttributes.tariffSpecies || null,
@@ -212,7 +231,14 @@ export function analyzeProductInput(name, description, semanticIndex) {
         ornamentalFish: /diszhal|guppi|guppy/.test(normalize(combinedText)),
         freshwaterOrnamental: /guppi|guppy|edesvizi diszhal/.test(normalize(combinedText)),
         aquaticSubtypeKnown: /pisztrang|angolna|ponty|tonhal|lazac|homar|languszta|garnela|folyami rak|tengeri rak|osztriga|kagylo|csiga|polip|tintahal/.test(normalize(combinedText)),
-        otherEquine: /szamar|oszver/.test(normalize(combinedText)),
+        equineType: /szamaroszver|looszver|oszver|muli/.test(normalize(name)) ? "mule"
+          : /szamar/.test(normalize(name)) ? "donkey"
+          : /\b(?:lo|poni)\b/.test(normalize(name)) ? "horse"
+          : /szamaroszver|looszver|oszver|muli/.test(normalize(combinedText)) ? "mule"
+          : /szamar/.test(normalize(combinedText)) ? "donkey"
+          : /\b(?:lo|poni)\b/.test(normalize(combinedText)) ? "horse"
+          : null,
+        birdSpecies: /galamb/.test(normalize(name)) || /galamb/.test(normalize(combinedText)) ? "pigeon" : null,
         animalState: animalStateFrom(combinedText),
         liveAnimalKnown: animalStateFrom(combinedText) === "live",
         animalProductRole: mentionsAnimalProductRole(combinedText),
