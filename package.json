@@ -1,10 +1,10 @@
 {
   "name": "taric-2026",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "scripts": {
-    "patch:ui": "node scripts/patch-ui-source.mjs && node scripts/reorder-ai-menu.mjs",
+    "patch:ui": "node scripts/patch-ui-source.mjs && node scripts/replace-main-navigation.mjs",
     "predev": "npm run patch:ui",
     "dev": "vite",
     "prepare:cnen": "node scripts/prepare-render-data.mjs && node scripts/prepare-measures-runtime.mjs && node scripts/prepare-cnen-runtime.mjs",
