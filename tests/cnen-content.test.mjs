@@ -7,7 +7,7 @@ async function call(queryStringParameters = {}, httpMethod = "GET") {
 }
 
 const browse = await call();
-if (browse.status !== 200 || browse.data.recordCount !== 2619 || browse.data.chapters?.length < 50)
+if (browse.status !== 200 || browse.data.recordCount !== 2672 || browse.data.chapters?.length < 50)
   throw new Error("A kétnyelvű KN-magyarázat alapértelmezett tallózólistája hiányos.");
 if (browse.data.results.length || !browse.data.chapters.every((chapter) => chapter.code.length === 2
   && chapter.items.every((record) => record.code.length === 4)))
@@ -48,8 +48,11 @@ if (!animal.data.records?.some((record) => /giraffes[\s\S]*dogs and cats/i.test(
   throw new Error("Az élőállat-magyarázat kétnyelvű tartalma hiányos.");
 
 const coverage = await call({ coverage: "1" });
-if (coverage.status !== 200 || coverage.data.coverage.missingKn8 < 0 || coverage.data.pairing.matched !== 2619)
-  throw new Error("A lefedettségi API hibás.");
+if (coverage.status !== 200 || coverage.data.coverage.missingKn8 < 0
+  || coverage.data.pairing.matched !== 2671
+  || coverage.data.pairing.monolingualSupplemental !== 1
+  || coverage.data.pairing.generalRecords !== 41)
+  throw new Error("A lefedettségi API vagy a párosítási metaadat hibás.");
 const missingList = await call({ missing: "1", limit: "5" });
 if (missingList.status !== 200 || missingList.data.total !== coverage.data.coverage.missingKn8
   || missingList.data.downloadUrl !== "/cnen-missing.csv")
@@ -60,4 +63,4 @@ if (missing.status !== 404) throw new Error("Nem létező vagy magyarázat nélk
 const method = await call({}, "POST");
 if (method.status !== 405) throw new Error("A tartalom API-nak el kell utasítania az író metódusokat.");
 
-console.log("OK kétnyelvű KN Magyarázat: 2 619 rekord, élő kódlekérdezés, lefedettség és hiánylista");
+console.log("OK kétnyelvű KN Magyarázat: 2 672 rekord, élő kódlekérdezés, lefedettség és hiánylista");
