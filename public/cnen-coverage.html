@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TARIC 2026 – KN Magyarázat lefedettség</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#17211b;background:#f3f5f2}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:28px}header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}h1{margin:0 0 8px;font-size:clamp(28px,4vw,46px)}p{line-height:1.55;color:#526058}.back,.download,button{border:0;border-radius:10px;padding:11px 15px;font-weight:800;text-decoration:none;cursor:pointer}.back{background:#e7eee9;color:#185c3e}.download,button{background:#185c3e;color:#fff}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.card,.panel{background:#fff;border:1px solid #d8e1db;border-radius:16px;padding:20px}.card b{font-size:27px;color:#185c3e;display:block}.card span{font-size:12px;color:#65736b}.tabs{display:flex;gap:8px;margin:22px 0 12px}.tabs button.secondary{background:#e7eee9;color:#185c3e}.panel{margin-bottom:18px}.search{display:grid;grid-template-columns:1fr auto;gap:10px;margin:14px 0}.search input{width:100%;border:1px solid #c8d4cd;border-radius:10px;padding:12px;font:inherit}.meta{font-size:13px;color:#65736b;margin:8px 0}.table-wrap{overflow:auto;max-height:570px;border:1px solid #e0e6e2;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e8ece9;vertical-align:top}th{position:sticky;top:0;background:#edf4ef;color:#315a46}code{color:#185c3e;font-weight:850;white-space:nowrap}.note{border-top:1px solid #e4e9e6;padding:16px 0}.note:first-child{border-top:0}.note h3{margin:0 0 5px}.note h4{margin:14px 0 6px}.note p{white-space:pre-wrap;font-size:13px}.tags span{display:inline-block;background:#edf5f0;color:#456b58;border-radius:999px;padding:4px 8px;font-size:10px;margin:3px}.hidden{display:none}.error{color:#9b4828;font-weight:800}.actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.scope{font-size:12px;color:#65736b}.load{margin-top:12px}@media(max-width:800px){.cards{grid-template-columns:1fr 1fr}header{display:block}.back{display:inline-block;margin-top:10px}.search{grid-template-columns:1fr}.wrap{padding:18px}}@media(max-width:480px){.cards{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header><div><h1>KN Magyarázat – lefedettség</h1><p>A 2026. február 13-i magyar és angol KN Magyarázat tartományfeloldása az alkalmazás aktuális KN10-állományára.</p></div><a class="back" href="/">Vissza a TARIC 2026-hoz</a></header>
+  <section id="cards" class="cards"><article class="card"><b>…</b><span>adatok betöltése</span></article></section>
+  <div class="tabs"><button id="missingTab">Magyarázat nélküli KN-kódok</button><button id="lookupTab" class="secondary">Élő KN-lekérdezés</button></div>
+
+  <section id="missingPanel" class="panel">
+    <div class="actions"><h2 style="margin-right:auto">Magyarázat nélküli KN8-kódok</h2><a class="download" href="/cnen-missing.csv" download>Teljes CSV letöltése</a></div>
+    <form id="missingForm" class="search"><input id="missingQuery" placeholder="KN-kód vagy magyar megnevezés"><button>Keresés</button></form>
+    <div id="missingMeta" class="meta"></div><div id="missingError" class="error"></div>
+    <div class="table-wrap"><table><thead><tr><th>KN8</th><th>Magyar megnevezés</th><th>TARIC10</th></tr></thead><tbody id="missingRows"></tbody></table></div>
+    <button id="more" class="load hidden">További tételek</button>
+  </section>
+
+  <section id="lookupPanel" class="panel hidden">
+    <h2>Élő KN-lekérdezés</h2>
+    <p>Adjon meg 8 vagy 10 jegyű KN/TARIC-kódot. A rendszer megjeleníti az összes konkrét és örökölt magyar–angol magyarázatot.</p>
+    <form id="lookupForm" class="search"><input id="lookupCode" inputmode="numeric" placeholder="pl. 85171300 vagy 8517130000"><button>Lekérdezés</button></form>
+    <div id="lookupError" class="error"></div><div id="lookupResult"></div>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);let offset=0,total=0,query="",limit=100;
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function api(url){const r=await fetch(url);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);return d}
+async function coverage(){try{const d=await api('/api/cnen-content?coverage=1'),c=d.coverage||{};$('cards').innerHTML=`<article class="card"><b>${Number(d.recordCount||0).toLocaleString('hu-HU')}</b><span>kétnyelvű magyarázatrekord</span></article><article class="card"><b>${Number(c.explainedKn8||0).toLocaleString('hu-HU')}</b><span>magyarázattal lefedett KN8</span></article><article class="card"><b>${Number(c.missingKn8||0).toLocaleString('hu-HU')}</b><span>alkalmazható magyarázat nélküli KN8</span></article><article class="card"><b>${Number(c.coveragePercent||0).toLocaleString('hu-HU')}%</b><span>KN8-lefedettség · adatnap: ${esc(c.dataDate||'—')}</span></article>`}catch(e){$('cards').innerHTML=`<p class="error">${esc(e.message)}</p>`}}
+async function loadMissing(reset=false){if(reset){offset=0;$('missingRows').innerHTML=''}$('missingError').textContent='';try{const d=await api(`/api/cnen-content?missing=1&q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`);total=d.total;$('missingMeta').textContent=`${Number(total).toLocaleString('hu-HU')} találat · ${total?offset+1:0}–${Math.min(offset+d.results.length,total)}`;$('missingRows').insertAdjacentHTML('beforeend',d.results.map(x=>`<tr><td><code>${esc(x.displayCode||x.code)}</code></td><td>${esc(x.descriptionHu||'—')}</td><td>${Number(x.taricCount||0).toLocaleString('hu-HU')}</td></tr>`).join(''));offset+=d.results.length;$('more').classList.toggle('hidden',offset>=total)}catch(e){$('missingError').textContent=e.message}}
+$('missingForm').addEventListener('submit',e=>{e.preventDefault();query=$('missingQuery').value.trim();loadMissing(true)});$('more').onclick=()=>loadMissing(false);
+$('missingTab').onclick=()=>{$('missingPanel').classList.remove('hidden');$('lookupPanel').classList.add('hidden');$('missingTab').classList.remove('secondary');$('lookupTab').classList.add('secondary')};
+$('lookupTab').onclick=()=>{$('lookupPanel').classList.remove('hidden');$('missingPanel').classList.add('hidden');$('lookupTab').classList.remove('secondary');$('missingTab').classList.add('secondary')};
+$('lookupForm').addEventListener('submit',async e=>{e.preventDefault();$('lookupError').textContent='';$('lookupResult').innerHTML='';const code=$('lookupCode').value.replace(/\D/g,'');try{const d=await api(`/api/cnen-content?code=${encodeURIComponent(code)}`);$('lookupResult').innerHTML=`<div class="meta">Lekért kód: <code>${esc(code)}</code> · ${d.records.length} alkalmazható megjegyzés</div>`+d.records.map((r,i)=>`<article class="note"><div class="scope">${i===0?'Legspecifikusabb':'Örökölt'} · ${esc(r.scopeType)} · ${esc(r.codeExpression)}</div><h3>${esc(r.headingHu||r.heading)}</h3>${r.headingHu?`<p><b>EN:</b> ${esc(r.heading)}</p>`:''}<div class="tags">${(r.ruleTypes||[]).map(t=>`<span>${esc(t)}</span>`).join('')}</div><h4>Magyar magyarázat</h4><p>${esc(r.contentHu||'Nincs magyar szöveg.')}</p><h4>English explanatory note</h4><p>${esc(r.content||'No English text.')}</p></article>`).join('')}catch(e){$('lookupError').textContent=e.message}});
+coverage();loadMissing(true);
+</script>
+</body>
+</html>

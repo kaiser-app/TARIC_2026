@@ -6,6 +6,9 @@ dist/
 !.env.example
 *.log
 .DS_Store
+.python-deps/
+data/cache/
 data/source/*.xml
 data/source/*.zip
 data/generated/*.json
+public/cnen-missing.csv
