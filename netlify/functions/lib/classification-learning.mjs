@@ -9,6 +9,7 @@ const normalize = (value) => String(value || "")
   .trim();
 
 const conceptTerms = {
+  live_animal: ["kutya", "eb", "puli", "dog", "macska", "hazimacska", "cat"],
   eyewear: ["szemuveg", "napszemuveg", "vedoszemuveg", "latasjavito szemuveg", "glasses", "sunglasses"],
   phone_case: ["telefontok", "telefon tok", "mobiltelefontok", "mobil telefon tok", "phone case"],
   tshirt: ["polo", "t shirt", "tshirt"],
@@ -51,6 +52,20 @@ const mentionsAccessoryRole = (value) => {
   return normalize(value).split(" ").some((token) => suffixes.includes(token)
     || suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix)));
 };
+
+const animalStateFrom = (value) => {
+  const text = normalize(value);
+  if (/\belo\b/.test(text)) return "live";
+  if (/\b(?:eledel|allateledel|takarmany|tap|jutalomfalat|ragoka|poraz|nyakorv|ham|szajkosar|jatekszer|gyogyszer)\b/.test(text)) return "animal_product";
+  if (/\b(?:feldolgozott|keszitmeny|konzerv|szaritott|sozott|fustolt)\b/.test(text)) return "processed";
+  if (/\b(?:fagyasztott|melyhutott)\b/.test(text)) return "frozen";
+  if (/\b(?:friss|hutott)\b/.test(text)) return "fresh_chilled";
+  if (/\b(?:hus|vagott|felezett|felbevagott|feltest)\b|hasitott test/.test(text)) return "carcass_meat";
+  if (/\b\d+(?:[.,]\d+)?\s*(?:eves|honapos|hetes)\b|\b(?:torzskonyvezett|fajtatiszta|tenyesztesre|him|nosteny)\b/.test(text)) return "live";
+  return "unknown";
+};
+const mentionsLiveAnimal = (value) => animalStateFrom(value) === "live";
+const mentionsAnimalProductRole = (value) => !["unknown", "live"].includes(animalStateFrom(value));
 
 const ignoredDictionaryTerms = new Set([
   "anyag", "aru", "termek", "eszkoz", "keszulek", "szerkezet",
@@ -112,7 +127,7 @@ export function analyzeProductInput(name, description, semanticIndex) {
     const nameMatches = terms.filter((term) => containsTerm(name, term));
     const descriptionMatches = terms.filter((term) => containsTerm(description, term));
     const matches = nameMatches.length
-      ? nameMatches
+      ? concept === "live_animal" && mentionsAnimalProductRole(combinedText) && !mentionsLiveAnimal(combinedText) ? [] : nameMatches
       : mentionsAccessoryRole(description)
         ? []
         : descriptionMatches;
@@ -123,9 +138,14 @@ export function analyzeProductInput(name, description, semanticIndex) {
     }
   }
   const matches = semanticMatches(name, combinedText, semanticIndex);
-  const indexedConcepts = matches.map((item) => item.concept).filter(Boolean);
+  const indexedConcepts = matches.map((item) => item.concept).filter((concept) => concept && !(concept === "live_animal" && mentionsAnimalProductRole(combinedText) && !mentionsLiveAnimal(combinedText)));
   concepts.push(...indexedConcepts);
   if (!canonicalProduct && indexedConcepts.length) canonicalProduct = indexedConcepts[0];
+  if (/\belo allat\b/.test(normalize(combinedText)) && !concepts.includes("live_animal")) {
+    concepts.push("live_animal");
+    productTerms.push("élő állat");
+    if (!canonicalProduct) canonicalProduct = "live_animal";
+  }
   const indexedAttributes = Object.assign({}, ...matches.map((item) => item.a).filter(Boolean));
   const materials = [];
   for (const [material, terms] of Object.entries(materialTerms))
@@ -186,6 +206,16 @@ export function analyzeProductInput(name, description, semanticIndex) {
         plasticLens: Boolean(indexedAttributes.plasticLens) || /muanyag lencse|polikarbonat lencse/.test(normalize(combinedText)),
         glassLens: Boolean(indexedAttributes.glassLens) || /uveg lencse|asvanyi uveg/.test(normalize(combinedText)),
         opticallyWorkedLens: Boolean(indexedAttributes.opticallyWorkedLens) || /optikailag megmunkalt lencse|dioptrias/.test(normalize(combinedText)),
+        animalClass: indexedAttributes.animalClass || null,
+        tariffSpecies: indexedAttributes.tariffSpecies || null,
+        animalGroup: indexedAttributes.animalGroup || null,
+        ornamentalFish: /diszhal|guppi|guppy/.test(normalize(combinedText)),
+        freshwaterOrnamental: /guppi|guppy|edesvizi diszhal/.test(normalize(combinedText)),
+        aquaticSubtypeKnown: /pisztrang|angolna|ponty|tonhal|lazac|homar|languszta|garnela|folyami rak|tengeri rak|osztriga|kagylo|csiga|polip|tintahal/.test(normalize(combinedText)),
+        otherEquine: /szamar|oszver/.test(normalize(combinedText)),
+        animalState: animalStateFrom(combinedText),
+        liveAnimalKnown: animalStateFrom(combinedText) === "live",
+        animalProductRole: mentionsAnimalProductRole(combinedText),
       },
     },
   };
