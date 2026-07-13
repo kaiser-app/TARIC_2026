@@ -14,7 +14,7 @@ const requireEvidence = (code, pattern) => {
 
 if (index.source.documentDate !== "2026-02-13" || index.source.consolidation !== "016.001")
   throw new Error("Hibás CNEN-forrásverzió.");
-if (index.source.legallyBinding !== false || index.recordCount < 2000)
+if (index.source.legallyBinding !== false || index.recordCount !== 2533 || index.source.contentFormat !== "code-keyed-json")
   throw new Error("A CNEN jogi minősítése vagy feldolgozottsága hibás.");
 
 requireEvidence("0106190000", /giraffes[\s\S]*dogs and cats/i);
