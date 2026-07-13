@@ -40,16 +40,23 @@ if (!source.includes('topPanel==="ai"?"active":""')
   || !source.includes('onApply={applyAiSelection}'))
   throw new Error("Az AI gomb, a lenyíló szolgáltatópanel vagy a fő tarifálóba történő visszaadás hiányzik.");
 
+const aiMenuButton = '<button className={topPanel==="ai"?"active":""} onClick={()=>setTopPanel(topPanel==="ai"?null:"ai")}>AI</button>';
+const browseMenuButton = '<button className={topPanel==="content"?"active":""} onClick={()=>setTopPanel(topPanel==="content"?null:"content")}>{L("Tallózás","Browse")}</button>';
+const aiMenuIndex = source.indexOf(aiMenuButton);
+const browseMenuIndex = source.indexOf(browseMenuButton);
+if (aiMenuIndex < 0 || browseMenuIndex < 0 || aiMenuIndex > browseMenuIndex)
+  throw new Error("Az AI menüpontnak közvetlenül a Tallózás bal oldalán kell megjelennie.");
+
 for (const label of ["Claude - Ügynök", "ChatGpt - GPT", "Gemini - Gem"])
   if (!aiSource.includes(label)) throw new Error(`Hiányzó AI szolgáltatófül: ${label}`);
 if (!aiSource.includes('https://claude.ai/new')
-  || !aiSource.includes('https://chatgpt.com/')
-  || !aiSource.includes('https://gemini.google.com/app')
+  || !aiSource.includes('https://chatgpt.com/g/g-6a448bbbcbe88191a3d8d464c0bb50a9-taric-vamtarifa-tanacsado-hu')
+  || !aiSource.includes('https://gemini.google.com/gem/1PRkJ8drjNSXEtwpTxiMcwGXrpyjeUXsx?usp=sharing')
   || !aiSource.includes('navigator.clipboard.writeText(prompt)')
   || !aiSource.includes('window.open(selected.url')
   || aiSource.includes('api.anthropic.com')
   || aiSource.includes('x-api-key'))
-  throw new Error("Az AI panel nem saját fiókos, API nélküli promptátadást használ.");
+  throw new Error("Az AI panel nem a kijelölt Claude-, ChatGPT- és Gemini-célokat vagy API nélküli promptátadást használja.");
 if (!aiSource.includes('AI-válasz visszaillesztése')
   || !aiSource.includes('Kód és megnevezés átvétele')
   || !aiSource.includes('parseJson(responseText)'))
@@ -97,4 +104,4 @@ if (!uiCss.includes("--content-block-gap:18px")
   || !aiCss.includes(".ai-provider-grid"))
   throw new Error("A Tallózás, az AI panel, a hierarchia, az egységes térköz vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: Tallózás és AI szolgáltatópanel a fő űrlap előtt; API nélküli Claude/ChatGPT/Gemini átadás, HU/EN tartalom és KN/TARIC-kódátvétel");
+console.log("OK UI: AI a Tallózás bal oldalán; egyedi ChatGPT és Gemini célok; API nélküli Claude/ChatGPT/Gemini átadás, HU/EN tartalom és KN/TARIC-kódátvétel");

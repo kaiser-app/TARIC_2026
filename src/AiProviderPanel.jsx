@@ -4,8 +4,8 @@ import "./ai-provider-panel.css";
 
 const PROVIDERS = {
   claude: { label: "Claude - Ügynök", url: "https://claude.ai/new", actionHu: "Claude megnyitása", actionEn: "Open Claude" },
-  chatgpt: { label: "ChatGpt - GPT", url: "https://chatgpt.com/", actionHu: "ChatGPT megnyitása", actionEn: "Open ChatGPT" },
-  gemini: { label: "Gemini - Gem", url: "https://gemini.google.com/app", actionHu: "Gemini megnyitása", actionEn: "Open Gemini" },
+  chatgpt: { label: "ChatGpt - GPT", url: "https://chatgpt.com/g/g-6a448bbbcbe88191a3d8d464c0bb50a9-taric-vamtarifa-tanacsado-hu", actionHu: "ChatGPT megnyitása", actionEn: "Open ChatGPT" },
+  gemini: { label: "Gemini - Gem", url: "https://gemini.google.com/gem/1PRkJ8drjNSXEtwpTxiMcwGXrpyjeUXsx?usp=sharing", actionHu: "Gemini megnyitása", actionEn: "Open Gemini" },
 };
 
 const cleanCode = (value) => String(value ?? "").replace(/\D/g, "").slice(0, 10);
