@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+// A buildelt App.jsx pontosan egy MainNavigation komponenst használhat.
 const appSource = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
 const navSource = await readFile(new URL("../src/MainNavigation.jsx", import.meta.url), "utf8");
 
