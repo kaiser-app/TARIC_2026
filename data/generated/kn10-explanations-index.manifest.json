@@ -1,15 +1,12 @@
 {
-  "schemaVersion": "1.2.0",
-  "encoding": "brotli+base64",
-  "partCount": 57,
+  "schemaVersion": "2.0.0",
+  "encoding": "json-note-shards",
+  "partCount": 25,
   "recordCount": 25820,
   "noteCount": 2447,
-  "nameCount": 11767,
-  "rowCountPerLanguage": 25820,
   "explainedRows": 19538,
   "missingRows": 6282,
-  "sha256": "cb8ef679625f3dbf30c33ca3bc9c6fcf01349f34c0be6ad31bacda20b5f460f4",
-  "compressedSha256": "7a19a46cee8b59e5a3513fbbaa69f9e93565f920bfe120609755e47bcf60a23d",
+  "rowMetadataSha256": "9c685b879268fb88596a54b6746bbc62b8db5512326f425500f916b1f8ee794e",
   "sourceFiles": [
     {
       "name": "kn10_magyarazatok_HU.zip",
@@ -21,5 +18,47 @@
       "sha256": "619d50c235cbb1f937e65fc83ec93d34a0dddfab9408c0742799e4080f416015",
       "size": 1795907
     }
+  ],
+  "sections": {
+    "03": "I", "01": "I", "02": "I", "04": "I", "07": "II", "08": "II", "05": "I", "06": "II",
+    "11": "II", "12": "II", "13": "II", "14": "II", "15": "III", "09": "II", "10": "II",
+    "18": "IV", "17": "IV", "19": "IV", "20": "IV", "16": "IV", "22": "IV", "23": "IV", "21": "IV",
+    "28": "VI", "29": "VI", "24": "IV", "25": "V", "26": "V", "27": "V", "30": "VI", "31": "VI",
+    "32": "VI", "38": "VI", "39": "VII", "33": "VI", "34": "VI", "35": "VI", "36": "VI", "37": "VI",
+    "44": "IX", "45": "IX", "46": "IX", "47": "X", "48": "X", "40": "VII", "41": "VIII", "42": "VIII",
+    "43": "VIII", "52": "XI", "53": "XI", "54": "XI", "49": "X", "50": "XI", "51": "XI", "61": "XI",
+    "60": "XI", "62": "XI", "55": "XI", "56": "XI", "57": "XI", "58": "XI", "59": "XI", "63": "XI",
+    "64": "XII", "68": "XIII", "69": "XIII", "70": "XIII", "65": "XII", "66": "XII", "67": "XII",
+    "72": "XV", "71": "XIV", "73": "XV", "74": "XV", "76": "XV", "78": "XV", "79": "XV", "75": "XV",
+    "84": "XVI", "80": "XV", "81": "XV", "82": "XV", "83": "XV", "90": "XVIII", "85": "XVI",
+    "88": "XVII", "87": "XVII", "96": "XX", "95": "XX", "92": "XVIII", "93": "XIX", "89": "XVII",
+    "91": "XVIII", "86": "XVII", "97": null, "94": "XX", "99": null, "98": null
+  },
+  "parts": [
+    {"file":"notes-00.json","count":154,"sha256":"97db0d2a71ecc81fde5afa779a989cfe1df0b747ae0a96327ed845725da593a4"},
+    {"file":"notes-01.json","count":116,"sha256":"53fc7b58c2428de4be7210f1f322c8abcc5ad033f63b95e86e2b30d1b0be29a5"},
+    {"file":"notes-02.json","count":146,"sha256":"0c5aab10af1d23d49ba6ebbbe5ad1333c193aeb7880a8b1943844038ea515b9c"},
+    {"file":"notes-03.json","count":71,"sha256":"61f0cef94b8e299c64275e54c1105da597085a8cb023cbfc212398be2a1c5a5c"},
+    {"file":"notes-04.json","count":33,"sha256":"01c7d9dc103254ebbdc37ae98e994e043da287f2d9d53011da1d4858bc2c7cea"},
+    {"file":"notes-05.json","count":90,"sha256":"40605266df4973c5c0bc5ddddd0b72d30a227a3f4410bc7ec7bcd2016389df70"},
+    {"file":"notes-06.json","count":103,"sha256":"0be352f560039273317f4ea0c95f25c73b62e6447c611f4d6d44a40d831f16fd"},
+    {"file":"notes-07.json","count":149,"sha256":"7da7f9d570b0065e1a595fe6597c5bc7722cf0261e76c86d5ca20138ccdc8857"},
+    {"file":"notes-08.json","count":93,"sha256":"51daf2d3e78aaf68751c3e77a7be3c65589790c31c6a64913c3880338ec6e159"},
+    {"file":"notes-09.json","count":137,"sha256":"f2054c0aed43096932c3a92e4c08b9d94baf080e9e097cd1993c95977aa3e7d4"},
+    {"file":"notes-10.json","count":78,"sha256":"5b0d076b9d4f791683d3af369e7b18bf8bc5cfb23a5e5980821fd0c1934fbc7a"},
+    {"file":"notes-11.json","count":83,"sha256":"35b594f7ad2cce2995d6ad6b955201f98b5ac854b4d632940b6789ea117e8bd1"},
+    {"file":"notes-12.json","count":70,"sha256":"738c185280134f59488924adf63dad0a285edc1f20c6d761d38211d066c2c57c"},
+    {"file":"notes-13.json","count":82,"sha256":"c6121373968922e9b818de42e557974683618ff9e1dd1e34d20ed5eaf3868052"},
+    {"file":"notes-14.json","count":121,"sha256":"968903b2b3909913e8cbe9c4f8316214b788cda7421f85465b7c3733dc054e50"},
+    {"file":"notes-15.json","count":92,"sha256":"5c981f00e92c9fe27a548f0c9493f73840fbc5530444cec9fa78c84497c6d013"},
+    {"file":"notes-16.json","count":91,"sha256":"37cad103568640bfc3a9e25234d86facf477442bbdbefe7edd11c0dcecbdf0fb"},
+    {"file":"notes-17.json","count":95,"sha256":"86f98c4cdc40216ee9e376203a4ed0fe9bf3b3db2a274ebde270be1182bb3ce0"},
+    {"file":"notes-18.json","count":67,"sha256":"a3bd97eaa66aa18690166a0db0c7e6c2e2cee3dbc7dfb0d123004e02e5f0873e"},
+    {"file":"notes-19.json","count":125,"sha256":"10884ca049228f55e64b5c156a33a5f21ab36ad69e897babbaa21f72f05a0605"},
+    {"file":"notes-20.json","count":125,"sha256":"2870841140be7bd9f5146bde00cc9b822114680494ef5682791e3455d4d1efe7"},
+    {"file":"notes-21.json","count":119,"sha256":"aee008c5440c207ea45ae6335b8065fc3fe0745ca1b9fd1904af06b87d757609"},
+    {"file":"notes-22.json","count":131,"sha256":"63c859dd246082ee54fbc6d49099feaa21ffe04b51240f0b58d6a8db68c01cf9"},
+    {"file":"notes-23.json","count":72,"sha256":"cf98b5eb4b91554f1ec9e50a8928b75154c42788047eafa3c0e143a82eabf978"},
+    {"file":"notes-24.json","count":4,"sha256":"3ae23ad49636d552f09dcd0ebac23fc1ed8db0e0aa217e499b10f4e5afa8b5e3"}
   ]
 }
