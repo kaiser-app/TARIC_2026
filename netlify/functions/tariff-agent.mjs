@@ -77,7 +77,7 @@ export default async (request) => {
       headers,
     });
   const [index, nom, semanticIndex, cnenIndex] = await loadClassificationData();
-  const classificationSession = beginClassification(name, description, semanticIndex);
+  const classificationSession = beginClassification(name, description, semanticIndex, b.confirmedFacts);
   const respond = (payload, init) => Response.json(
     attachClassificationSources(finishClassification(classificationSession.id, payload), cnenIndex),
     init,
