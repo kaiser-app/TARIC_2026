@@ -1,4 +1,7 @@
 import { loadCnenIndex } from "./lib/cnen-index-data.mjs";
+import { readFile } from "node:fs/promises";
+
+const nomenclatureUrl = new URL("../../data/generated/nomenclature-rows.json", import.meta.url);
 
 const json = (status, payload) => new Response(JSON.stringify(payload), {
   status,
@@ -17,20 +20,53 @@ const searchable = (value) => String(value || "")
   .trim();
 
 let preparedPromise;
+function officialHungarianHeading(code, index, rowsByCode) {
+  const exactDescriptions = (candidate) => (rowsByCode.get(candidate.padEnd(10, "0")) || [])
+    .sort((left, right) => right.indent - left.indent)
+    .map((row) => row.description)
+    .filter(Boolean);
+  const direct = exactDescriptions(code);
+  if (direct.length) return direct[0];
+  const mapped = (index.codeMappings || [])
+    .filter((mapping) => mapping.source === code)
+    .flatMap((mapping) => exactDescriptions(mapping.current));
+  if (mapped.length) return [...new Set(mapped)].join(" / ");
+  for (let length = Math.min(8, code.length - 1); length >= 4; length -= 1) {
+    const parent = exactDescriptions(code.slice(0, length));
+    if (parent.length) return parent[0];
+  }
+  return null;
+}
+
 async function preparedIndex() {
-  if (!preparedPromise) preparedPromise = loadCnenIndex().then((index) => ({
-    index,
-    records: index.records.map((record) => ({
-      record,
-      code: record.c[0],
-      headingSearch: searchable(record.h),
-      textSearch: searchable(record.t),
-    })),
-  }));
+  if (!preparedPromise) preparedPromise = Promise.all([
+    loadCnenIndex(),
+    readFile(nomenclatureUrl, "utf8").then(JSON.parse),
+  ]).then(([index, nomenclature]) => {
+    const rowsByCode = new Map();
+    for (const row of nomenclature.rows) {
+      const list = rowsByCode.get(row.code) || [];
+      list.push(row);
+      rowsByCode.set(row.code, list);
+    }
+    const records = index.records.map((record) => {
+      const code = record.c[0];
+      const headingHu = officialHungarianHeading(code, index, rowsByCode);
+      return {
+        record, code, headingHu,
+        headingSearch: searchable(`${record.h} ${headingHu || ""}`),
+        textSearch: searchable(`${record.t} ${headingHu || ""}`),
+      };
+    });
+    const chapterTitles = new Map();
+    for (const row of nomenclature.rows.filter((item) => /^\d{2}0{8}$/.test(item.code) && item.description))
+      if (!chapterTitles.has(row.code.slice(0, 2))) chapterTitles.set(row.code.slice(0, 2), row.description);
+    return { index, records, chapterTitles };
+  });
   return preparedPromise;
 }
 
-function summary(record, query = "") {
+function summary(record, query = "", headingHu = null) {
   const normalizedQuery = searchable(query);
   const normalizedText = searchable(record.t);
   const foundAt = normalizedQuery ? normalizedText.indexOf(normalizedQuery) : -1;
@@ -39,6 +75,7 @@ function summary(record, query = "") {
   return {
     code: record.c[0],
     heading: record.h,
+    headingHu,
     snippet: `${start ? "…" : ""}${rawSnippet}${record.t.length > start + 620 ? "…" : ""}`,
     ruleTypes: record.y,
     referencedCodes: record.r.slice(0, 12),
@@ -46,12 +83,22 @@ function summary(record, query = "") {
   };
 }
 
-function detail(record, requestedCode, mappedFrom = null) {
+function browseSummary(item) {
+  return {
+    code: item.code,
+    heading: item.record.h,
+    headingHu: item.headingHu,
+    ruleTypes: item.record.y,
+  };
+}
+
+function detail(record, requestedCode, mappedFrom = null, headingHu = null) {
   return {
     requestedCode,
     mappedFrom,
     code: record.c[0],
     heading: record.h,
+    headingHu,
     content: record.t,
     ruleTypes: record.y,
     referencedCodes: record.r,
@@ -78,7 +125,7 @@ export default async function handler(request = {}) {
     return json(405, { error: "A KN-magyarázat böngészője csak GET kérést fogad." });
 
   try {
-    const { index, records } = await preparedIndex();
+    const { index, records, chapterTitles } = await preparedIndex();
     const params = request.url
       ? Object.fromEntries(new URL(request.url, "http://localhost").searchParams)
       : request.queryStringParameters || {};
@@ -93,16 +140,17 @@ export default async function handler(request = {}) {
           sourceCode = mapping.source;
         }
       }
-      const record = index.records[index.lookup[sourceCode]?.[0]];
+      const item = records.find((candidate) => candidate.code === sourceCode);
+      const record = item?.record;
       if (!record) return json(404, { error: "Ehhez a KN-kódhoz nincs külön magyarázó megjegyzés.", requestedCode });
       const children = records
         .filter((item) => item.code.startsWith(sourceCode) && item.code !== sourceCode)
         .slice(0, 100)
-        .map((item) => summary(item.record));
+        .map((child) => summary(child.record, "", child.headingHu));
       return json(200, {
         source: index.source,
         recordCount: index.recordCount,
-        record: detail(record, requestedCode, mappedFrom),
+        record: detail(record, requestedCode, mappedFrom, item.headingHu),
         children,
       });
     }
@@ -113,7 +161,17 @@ export default async function handler(request = {}) {
     const limit = Math.min(100, Math.max(1, Number.parseInt(params.limit || "40", 10) || 40));
     let matches;
     if (!query) {
-      matches = records.filter((item) => item.code.length === 4).map((item) => ({ item, score: 1 }));
+      const headings = records.filter((item) => item.code.length === 4);
+      const chapters = [...new Set(headings.map((item) => item.code.slice(0, 2)))].sort().map((chapter) => ({
+        code: chapter,
+        headingHu: chapterTitles.get(chapter) || null,
+        count: headings.filter((item) => item.code.startsWith(chapter)).length,
+        items: headings.filter((item) => item.code.startsWith(chapter)).map(browseSummary),
+      }));
+      return json(200, {
+        source: index.source, recordCount: index.recordCount, query: "",
+        total: headings.length, offset: 0, limit: headings.length, chapters, results: [],
+      });
     } else if (queryDigits) {
       matches = records
         .filter((item) => item.code.startsWith(queryDigits))
@@ -131,7 +189,7 @@ export default async function handler(request = {}) {
       total: matches.length,
       offset,
       limit,
-      results: matches.slice(offset, offset + limit).map(({ item }) => summary(item.record, query)),
+      results: matches.slice(offset, offset + limit).map(({ item }) => summary(item.record, query, item.headingHu)),
     });
   } catch (error) {
     console.error("CNEN content API error", error);
