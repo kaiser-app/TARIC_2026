@@ -13,6 +13,15 @@ const accessoryRole = (value) => {
   return tokens.some((token) => suffixes.includes(token)
     || suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix)));
 };
+const significantCodeLength = (code) => {
+  const lastNonZero = String(code || "").split("").reduce((last, digit, index) => digit !== "0" ? index : last, -1);
+  return Math.max(4, Math.min(10, Math.ceil((lastNonZero + 1) / 2) * 2));
+};
+const isTerminalTariffCode = (code, records) => {
+  if (!/^\d{10}$/.test(String(code || "")) || String(code).slice(2) === "00000000") return false;
+  const prefix = String(code).slice(0, significantCodeLength(code));
+  return !records.some((record) => record.vtsz !== code && record.vtsz?.startsWith(prefix));
+};
 let classificationDataPromise;
 const loadClassificationData = () => classificationDataPromise ??= Promise.all([
   readFile(new URL("../../data/generated/taric-index.json", import.meta.url), "utf8").then(JSON.parse),
@@ -53,6 +62,24 @@ export default async (request) => {
   const classificationSession = beginClassification(name, description, semanticIndex);
   const respond = (payload, init) => Response.json(finishClassification(classificationSession.id, payload), init);
   const supplied = norm(name + " " + description);
+  const normalizedName = norm(name).trim();
+  const exactTerminalRecords = [
+    ...index.records.map((record) => ({ code: record.vtsz, description: record.descriptionHu, productLine: record.productLine })),
+    ...nom.rows.map((row) => ({ code: row.code, description: row.description, productLine: row.productLine })),
+  ].filter((record) => norm(record.description).trim() === normalizedName && isTerminalTariffCode(record.code, index.records));
+  const exactTerminalCodes = [...new Set(exactTerminalRecords.map((record) => record.code))];
+  if (exactTerminalCodes.length === 1 && !classificationSession.facts.concepts?.length) {
+    const code = exactTerminalCodes[0];
+    const leaf = exactTerminalRecords.find((record) => record.code === code);
+    const root = index.records.find((record) => record.vtsz === `${code.slice(0, 4)}000000`);
+    return respond({
+      status: "classified", code, confidence: "magas",
+      path: [root && { code: root.vtsz, description: root.descriptionHu, productLine: root.productLine }, leaf]
+        .filter(Boolean).map((row, line) => ({ code: row.code, line, productLine: row.productLine, description: row.description })),
+      reasoning: "GRI 1: a megnevezés egyetlen végponti NAV-nómenklatúra-sorral egyezik pontosan; többértelmű névnél a rendszer továbbra is a teljes leírást vizsgálja.",
+      clarification: null, dataDate: index.dataDate, engine: "exact-terminal-match-v2",
+    });
+  }
   const profileDecision = decideByProfiles(classificationSession.facts, nom, index.dataDate);
   if (profileDecision) return respond(profileDecision);
   const suppliedFacts = {
@@ -263,7 +290,15 @@ export default async (request) => {
   }
   let clarification;
   let clarificationOptions;
-  if (!suppliedFacts.materials.length) {
+  if (exactRanked.length > 1) {
+    clarification = "A megnevezés több tarifális helyen is szerepel. Az alábbi teljes áru- és feldolgozottsági leírások közül melyik illik a termékre?";
+    clarificationOptions = exactRanked.slice(0, 6).map((item) => ({
+      id: `exact_context_${item.code}`,
+      label: [item.rootDescription, item.description].filter(Boolean).join(" — ").slice(0, 140),
+      appendText: `a teljes tarifális termékleírás: ${[item.rootDescription, item.description].filter(Boolean).join("; ")}`,
+      candidateCode: item.code,
+    }));
+  } else if (!suppliedFacts.materials.length) {
     clarification = "Milyen anyagból készült az áru? Ha több anyagból áll, melyik adja a lényeges jellegét?";
     const materialPool = [
       ["cotton", "Pamut", "pamutból készült"], ["plastic", "Műanyag", "műanyagból készült"],

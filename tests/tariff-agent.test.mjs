@@ -306,6 +306,30 @@ if (!/milyen állapotban kerül forgalomba/i.test(calfState.clarification || "")
   throw new Error("A BORJÚ megnevezést a bőr anyagfogalom részszavas egyezése eltérítette.");
 console.log("OK állatnévnél az élő/vágott/hűtött/fagyasztott/feldolgozott állapot az első döntési kapu");
 
+for (const fixture of [
+  { name: "Feketebors (Piper)", description: "szárított növényi fűszer", forbidden: "live_animal" },
+  { name: "Hajápoló szerek", description: "sampon és hajápoló készítmény", forbidden: "tshirt" },
+  { name: "Szemüvegtok", description: "fröccsöntött műanyag védőtok", forbidden: "eyewear" },
+]) {
+  const response = await agent(new Request("http://local/api/tariff-agent", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(fixture),
+  }));
+  const result = await response.json();
+  if (result.factsUsed?.extracted?.concepts?.includes(fixture.forbidden))
+    throw new Error(`Részszavas fogalomtévesztés maradt: ${fixture.name} → ${fixture.forbidden}`);
+}
+const donkeyResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "SZAMÁR", description: "élő állat" }),
+}));
+const donkey = await donkeyResponse.json();
+if (donkey.code !== "0101300000") throw new Error(`Az élő szamár kódja hibás: ${donkey.code}`);
+const separatedLensResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "DIOPTRIÁS SZEMÜVEG", description: "MŰANYAG, OPTIKAILAG MEGMUNKÁLT LENCSÉVEL" }),
+}));
+const separatedLens = await separatedLensResponse.json();
+if (separatedLens.code !== "9004901000") throw new Error(`A köztes jelzőkkel leírt műanyag lencsét nem ismerte fel: ${separatedLens.code}`);
+console.log("OK tokenhatáros fogalomkeresés, szamár-kód és rugalmas anyag–alkatrész kapcsolat");
+
 const sunglassesResponse = await agent(new Request("http://local/api/tariff-agent", {
   method: "POST", headers: { "content-type": "application/json" },
   body: JSON.stringify({ name: "NAPSZEMÜVEG", description: "FÉM KERETTEL, DIOPTRIA NÉLKÜL, FEKETE LENCSÉVEL" })
