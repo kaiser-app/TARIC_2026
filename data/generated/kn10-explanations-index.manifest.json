@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "encoding": "brotli+base64",
+  "partCount": 11,
+  "recordCount": 25820,
+  "noteCount": 2447,
+  "rowCountPerLanguage": 25820,
+  "explainedRows": 19538,
+  "missingRows": 6282,
+  "sha256": "50ebb894e0f06904876318ef3e23f6b1b6a946d1437c95745812d70ad7d36414",
+  "compressedSha256": "e51bd955af5d81f49aaddbeb0489ca93167daf8e636ec4cceebfc77980471702",
+  "sourceFiles": [
+    {
+      "name": "kn10_magyarazatok_HU.zip",
+      "sha256": "eb7971f59e2a9413c3f5c863dd04d84ca05934ed664870b859ed540264d8a6e2",
+      "size": 1718505
+    },
+    {
+      "name": "kn10_magyarazatok_EN.zip",
+      "sha256": "619d50c235cbb1f937e65fc83ec93d34a0dddfab9408c0742799e4080f416015",
+      "size": 1795907
+    }
+  ]
+}
