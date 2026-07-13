@@ -41,8 +41,10 @@ function evidenceFromRecord(currentCode, index, record) {
 export function findCnenEvidence(currentCode, index, limit = 4) {
   if (!currentCode || !index?.records) return [];
   const normalized = digits(currentCode);
-  const currentIds = index.currentLookup?.[normalized.slice(0, 8)] || [];
+  const exactIds = normalized.length >= 10 ? index.exactLookup?.[normalized.slice(0, 10)] || [] : [];
+  const currentIds = exactIds.length ? exactIds : index.currentLookup?.[normalized.slice(0, 8)] || [];
   if (currentIds.length) return currentIds
+    .filter((id) => Boolean(index.records[id]?.t || index.records[id]?.tHu))
     .slice(0, limit)
     .map((id) => index.records[id])
     .filter(Boolean)
@@ -55,7 +57,7 @@ export function findCnenEvidence(currentCode, index, limit = 4) {
       if (seen.has(id)) continue;
       seen.add(id);
       const record = index.records[id];
-      if (!record) continue;
+      if (!record || (!record.t && !record.tHu)) continue;
       result.push(evidenceFromRecord(normalized, index, record));
       if (result.length >= limit) return result;
     }
@@ -84,17 +86,11 @@ export function attachClassificationSources(payload, index) {
     }
     if (evidence.length >= 4) break;
   }
-  const legalSources = [
-    {
-      id: "current-cn-taric",
-      label: "Aktuális KN/TARIC nómenklatúra",
-      authority: "binding_nomenclature",
-      authorityWeight: SOURCE_AUTHORITY.binding_nomenclature,
-      binding: true,
-      role: "classification_decision",
-      dataDate: payload.dataDate || null,
-    },
-  ];
+  const legalSources = [{
+    id: "current-cn-taric", label: "Aktuális KN/TARIC nómenklatúra",
+    authority: "binding_nomenclature", authorityWeight: SOURCE_AUTHORITY.binding_nomenclature,
+    binding: true, role: "classification_decision", dataDate: payload.dataDate || null,
+  }];
   if (evidence.length) legalSources.push({
     id: `cnen-${index.source.documentDate}`,
     label: "Kétnyelvű KN Magyarázat (CNEN)",
