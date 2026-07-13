@@ -1,6 +1,6 @@
-import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, mkdir, open, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { resolvePythonRuntime, runPython } from "./python-runtime.mjs";
 
 const cacheDir = resolve("data/cache");
 const output = resolve("data/generated/cnen-bilingual-source.json");
@@ -22,7 +22,14 @@ async function validPdf(path) {
   try {
     const info = await stat(path);
     if (info.size < 1_000_000) return false;
-    return (await readFile(path, { encoding: "ascii", length: 5 })).startsWith("%PDF-");
+    const handle = await open(path, "r");
+    try {
+      const signature = Buffer.alloc(5);
+      await handle.read(signature, 0, 5, 0);
+      return signature.toString("ascii") === "%PDF-";
+    } finally {
+      await handle.close();
+    }
   } catch {
     return false;
   }
@@ -45,7 +52,8 @@ async function download(source) {
 await mkdir(cacheDir, { recursive: true });
 await Promise.all(sources.map(download));
 
-const result = spawnSync("python3", [
+const runtime = resolvePythonRuntime();
+const result = runPython(runtime, [
   resolve("scripts/build-bilingual-cnen.py"),
   sources[0].path,
   sources[1].path,
