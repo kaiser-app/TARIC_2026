@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { beginClassification, finishClassification } from "./lib/classification-learning.mjs";
 import { decideByProfiles } from "./lib/tariff-decision-engine.mjs";
+import { attachClassificationSources } from "./lib/cnen-rules.mjs";
+import { loadCnenIndex } from "./lib/cnen-index-data.mjs";
 const norm = (s) =>
     String(s || "")
       .toLocaleLowerCase("hu")
@@ -11,7 +13,8 @@ const accessoryRole = (value) => {
   const tokens = norm(value).replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
   const suffixes = ["tok", "tarto", "taska", "doboz", "huzat", "burkolat", "alkatresz"];
   return tokens.some((token) => suffixes.includes(token)
-    || suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix)));
+    || (!/(?:adatok|allatok)$/.test(token)
+      && suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix))));
 };
 const significantCodeLength = (code) => {
   const lastNonZero = String(code || "").split("").reduce((last, digit, index) => digit !== "0" ? index : last, -1);
@@ -21,6 +24,20 @@ const isTerminalTariffCode = (code, records) => {
   if (!/^\d{10}$/.test(String(code || "")) || String(code).slice(2) === "00000000") return false;
   const prefix = String(code).slice(0, significantCodeLength(code));
   return !records.some((record) => record.vtsz !== code && record.vtsz?.startsWith(prefix));
+};
+const termAppearsOnlyInExclusion = (description, term) => {
+  const text = norm(description).replace(/[^a-z0-9]+/g, " ").trim();
+  const target = norm(term).replace(/[^a-z0-9]+/g, " ").trim();
+  if (!target) return false;
+  const positions = [];
+  for (let index = text.indexOf(target); index >= 0; index = text.indexOf(target, index + target.length))
+    positions.push(index);
+  return positions.length > 0 && positions.every((index) => {
+    const before = text.slice(Math.max(0, index - 30), index);
+    const after = text.slice(index + target.length, index + target.length + 36);
+    return /(?:kiveve|kivetelevel|nem beleertve)\s*$/.test(before)
+      || /^(?:\s+\w+){0,2}\s+(?:kivetelevel|kiveve|nem tartozik)/.test(after);
+  });
 };
 let classificationDataPromise;
 const loadClassificationData = () => classificationDataPromise ??= Promise.all([
@@ -43,6 +60,7 @@ const loadClassificationData = () => classificationDataPromise ??= Promise.all([
       recordCount: base.records.length + supplement.records.length,
     };
   }),
+  loadCnenIndex(),
 ]);
 export default async (request) => {
   if (request.method !== "POST")
@@ -58,9 +76,12 @@ export default async (request) => {
       status: 400,
       headers,
     });
-  const [index, nom, semanticIndex] = await loadClassificationData();
+  const [index, nom, semanticIndex, cnenIndex] = await loadClassificationData();
   const classificationSession = beginClassification(name, description, semanticIndex);
-  const respond = (payload, init) => Response.json(finishClassification(classificationSession.id, payload), init);
+  const respond = (payload, init) => Response.json(
+    attachClassificationSources(finishClassification(classificationSession.id, payload), cnenIndex),
+    init,
+  );
   const supplied = norm(name + " " + description);
   const normalizedName = norm(name).trim();
   const exactTerminalRecords = [
@@ -197,12 +218,12 @@ export default async (request) => {
   );
   if (root) {
     const branch = root.code.slice(0, 4);
-    const children = hierarchy.filter(
-      (row) => row.line === 1 && row.code.startsWith(branch),
-    );
-    const specific = children.find((row) =>
-      norm(row.description).split(/[^a-z0-9]+/).includes(atomic),
-    );
+    const descendants = hierarchy.filter((row) => row.line > 0 && row.code.startsWith(branch));
+    const children = descendants.filter((row) => row.line === 1);
+    const specific = descendants
+      .filter((row) => norm(row.description).split(/[^a-z0-9]+/).includes(atomic)
+        && !termAppearsOnlyInExclusion(row.description, atomic))
+      .sort((left, right) => right.line - left.line)[0];
     if (specific)
       return respond({
         status: "classified",
