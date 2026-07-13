@@ -7,11 +7,33 @@ const norm = (s) =>
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, ""),
   headers = { "content-type": "application/json; charset=utf-8" };
+const accessoryRole = (value) => {
+  const tokens = norm(value).replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  const suffixes = ["tok", "tarto", "taska", "doboz", "huzat", "burkolat", "alkatresz"];
+  return tokens.some((token) => suffixes.includes(token)
+    || suffixes.some((suffix) => token.length > suffix.length + 2 && token.endsWith(suffix)));
+};
 let classificationDataPromise;
 const loadClassificationData = () => classificationDataPromise ??= Promise.all([
   readFile(new URL("../../data/generated/taric-index.json", import.meta.url), "utf8").then(JSON.parse),
   readFile(new URL("../../data/generated/nomenclature-rows.json", import.meta.url), "utf8").then(JSON.parse),
-  readFile(new URL("../../data/generated/semantic-concepts-index.json", import.meta.url), "utf8").then(JSON.parse),
+  Promise.all([
+    readFile(new URL("../../data/generated/semantic-concepts-index.json", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../../data/generated/semantic-concepts-supplement.json", import.meta.url), "utf8").then(JSON.parse),
+  ]).then(([base, supplement]) => {
+    const offset = base.records.length;
+    const lookup = Object.fromEntries(Object.entries(base.lookup).map(([term, ids]) => [term, [...ids]]));
+    for (const [term, ids] of Object.entries(supplement.lookup))
+      lookup[term] = [...new Set([...(lookup[term] || []), ...ids.map((id) => id + offset)])];
+    return {
+      ...base,
+      version: `${base.version}+${supplement.version}`,
+      source: `${base.source}; ${supplement.source}`,
+      records: [...base.records, ...supplement.records],
+      lookup,
+      recordCount: base.records.length + supplement.records.length,
+    };
+  }),
 ]);
 export default async (request) => {
   if (request.method !== "POST")
@@ -129,8 +151,11 @@ export default async (request) => {
     });
   }
   const atomic = norm(name);
+  const suppliedIsAccessory = accessoryRole(`${name} ${description}`);
   const root = hierarchy.find(
-    (row) => row.line === 0 && norm(row.description).includes(atomic),
+    (row) => row.line === 0
+      && norm(row.description).includes(atomic)
+      && (suppliedIsAccessory || !accessoryRole(row.description)),
   );
   if (root) {
     const branch = root.code.slice(0, 4);
