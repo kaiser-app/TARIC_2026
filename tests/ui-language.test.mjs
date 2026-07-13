@@ -44,12 +44,12 @@ for (const label of ["Claude - Ügynök", "ChatGpt - GPT", "Gemini - Gem"])
   if (!aiSource.includes(label)) throw new Error(`Hiányzó AI szolgáltatófül: ${label}`);
 if (!aiSource.includes('https://claude.ai/new')
   || !aiSource.includes('https://chatgpt.com/')
-  || !aiSource.includes('https://gemini.google.com/app')
+  || !aiSource.includes('https://gemini.google.com/gem/1PRkJ8drjNSXEtwpTxiMcwGXrpyjeUXsx?usp=sharing')
   || !aiSource.includes('navigator.clipboard.writeText(prompt)')
   || !aiSource.includes('window.open(selected.url')
   || aiSource.includes('api.anthropic.com')
   || aiSource.includes('x-api-key'))
-  throw new Error("Az AI panel nem saját fiókos, API nélküli promptátadást használ.");
+  throw new Error("Az AI panel nem saját fiókos, API nélküli promptátadást vagy a kijelölt Gemini Gem linket használja.");
 if (!aiSource.includes('AI-válasz visszaillesztése')
   || !aiSource.includes('Kód és megnevezés átvétele')
   || !aiSource.includes('parseJson(responseText)'))
@@ -97,4 +97,4 @@ if (!uiCss.includes("--content-block-gap:18px")
   || !aiCss.includes(".ai-provider-grid"))
   throw new Error("A Tallózás, az AI panel, a hierarchia, az egységes térköz vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: Tallózás és AI szolgáltatópanel a fő űrlap előtt; API nélküli Claude/ChatGPT/Gemini átadás, HU/EN tartalom és KN/TARIC-kódátvétel");
+console.log("OK UI: Tallózás és AI szolgáltatópanel a fő űrlap előtt; API nélküli Claude/ChatGPT/Gemini átadás, kijelölt Gemini Gem link, HU/EN tartalom és KN/TARIC-kódátvétel");
