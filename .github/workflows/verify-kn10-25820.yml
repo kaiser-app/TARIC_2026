@@ -1,0 +1,66 @@
+name: Verify 25 820-row bilingual KN10 source
+
+on:
+  push:
+    branches:
+      - agent/kn10-json-25820-final-20260713
+    paths:
+      - ".github/workflows/verify-kn10-25820.yml"
+      - "data/source/kn10/**"
+      - "scripts/build-kn10-explanations-from-zips.mjs"
+      - "scripts/prepare-kn10-json-runtime.mjs"
+      - "scripts/prepare-cnen-runtime.mjs"
+      - "netlify/functions/lib/cnen-index-data.mjs"
+      - "netlify/functions/lib/cnen-rules.mjs"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    paths:
+      - "data/source/kn10/**"
+      - "scripts/build-kn10-explanations-from-zips.mjs"
+      - "scripts/prepare-kn10-json-runtime.mjs"
+      - "scripts/prepare-cnen-runtime.mjs"
+      - "netlify/functions/lib/cnen-index-data.mjs"
+      - "netlify/functions/lib/cnen-rules.mjs"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify source archives
+        run: |
+          echo "eb7971f59e2a9413c3f5c863dd04d84ca05934ed664870b859ed540264d8a6e2  data/source/kn10/kn10_magyarazatok_HU.zip" | sha256sum --check
+          echo "619d50c235cbb1f937e65fc83ec93d34a0dddfab9408c0742799e4080f416015  data/source/kn10/kn10_magyarazatok_EN.zip" | sha256sum --check
+      - name: Prepare UI source
+        run: npm run patch:ui
+      - name: Prepare KN10 runtime data
+        run: npm run prepare:cnen
+      - name: Test tariff agent
+        run: node tests/tariff-agent.test.mjs
+      - name: Test electronics
+        run: node tests/electronics.test.mjs
+      - name: Test KN10 explanatory rules
+        run: node tests/cnen-rules.test.mjs
+      - name: Test KN10 content API
+        run: node tests/cnen-content.test.mjs
+      - name: Test UI progress
+        run: node tests/ui-progress.test.mjs
+      - name: Test UI language and layout
+        run: node tests/ui-language.test.mjs
+      - name: Build production bundle
+        run: npm run build

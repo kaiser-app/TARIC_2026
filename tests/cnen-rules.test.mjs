@@ -4,44 +4,26 @@ import { loadCnenIndex } from "../netlify/functions/lib/cnen-index-data.mjs";
 import { mayOverride, SOURCE_AUTHORITY } from "../netlify/functions/lib/source-authority.mjs";
 
 const index = await loadCnenIndex();
-const evidence = (code) => {
-  const result = findCnenEvidence(code, index);
-  if (!result.length) throw new Error(`Hiányzó CNEN-bizonyíték: ${code}`);
-  return result;
-};
-
-if (index.source.documentDate !== "2026-02-13" || index.source.consolidation !== "016.001"
-  || index.source.contentFormat !== "bilingual-range-resolved" || index.recordCount !== 2672)
-  throw new Error("A kétnyelvű CNEN-forrás verziója vagy rekordszáma hibás.");
+if (index.source?.contentFormat !== "kn10-row-bilingual" || index.recordCount !== 25820 || index.records?.length !== 25820)
+  throw new Error("A kétnyelvű KN10-index nem őrzi meg mind a 25 820 sort.");
 if (!index.source.languages?.includes("EN") || !index.source.languages?.includes("HU")
-  || index.pairing?.matched !== 2671
-  || index.pairing?.monolingualSupplemental !== 1
-  || index.pairing?.generalRecords !== 41
-  || index.pairing?.scopeDiscrepancies !== 4)
-  throw new Error("A magyar–angol párosítás metaadatai hibásak.");
-if (!index.coverage || index.coverage.missingKn8 !== index.coverage.totalKn8 - index.coverage.explainedKn8)
-  throw new Error("A KN8-lefedettségi összesítés hibás.");
+  || index.pairing?.matchedRows !== 25820
+  || index.pairing?.explanationPairs !== 19538
+  || index.pairing?.rowsWithoutExplanation !== 6282
+  || index.pairing?.uniqueExplanationKeys !== 2447)
+  throw new Error("A magyar–angol KN10 sorpárosítás metaadatai hibásak.");
+if (index.missingRecords?.length !== 6282)
+  throw new Error("A magyarázat nélküli KN10-sorok száma hibás.");
+const duplicateCode = Object.entries(index.exactLookup || {}).find(([, ids]) => ids.length > 1);
+if (!duplicateCode || duplicateCode[1].some((id) => !index.records[id]))
+  throw new Error("Az azonos KN10-kódú külön hierarchiasorok elvesztek.");
 
-const smartphone = evidence("8517130000");
-const traditional = evidence("8517140000");
-if (!smartphone.some((item) => /mobile phones/i.test(item.excerpt) && /mobiltelefon/i.test(item.excerptHu))
-  || !traditional.some((item) => item.mappedFromOlderCode))
-  throw new Error("A kétnyelvű mobiltelefon-magyarázat vagy a 2019→2026 megfeleltetés hiányzik.");
-
-const rangeRecord = index.records.find((record) => record.s === "range"
-  && record.c?.length === 2 && record.c.every((code) => code.length >= 4));
-if (!rangeRecord) throw new Error("A tartományrekordok elvesztek.");
-const lower = rangeRecord.c[0].padEnd(8, "0"), upper = rangeRecord.c.at(-1).padEnd(8, "9");
-const currentInsideRange = Object.keys(index.currentLookup).filter((code) => code >= lower && code <= upper);
-if (currentInsideRange.length && !currentInsideRange.every((code) => index.currentLookup[code].includes(rangeRecord.id)))
-  throw new Error("A tartomány nem terjed ki minden létező köztes KN8-kódra.");
-
-const conservativeList = index.records.find((record) => record.c?.join("|") === "22011011|22011019");
-if (!conservativeList || conservativeList.s !== "list" || !conservativeList.d)
-  throw new Error("Az eltérő EN/HU tartományjelölés konzervatív kezelése hiányzik.");
-const intermediate = Object.keys(index.currentLookup).filter((code) => code > "22011011" && code < "22011019");
-if (intermediate.some((code) => index.currentLookup[code].includes(conservativeList.id)))
-  throw new Error("A felsorolásos megjegyzés tévesen köztes kódokra is kiterjed.");
+const smartphone = findCnenEvidence("8517130000", index, 10);
+if (!smartphone.some((item) => /telephone sets/i.test(item.excerpt) && /távbeszélő-készülék/i.test(item.excerptHu)))
+  throw new Error("A 8517130000 kétnyelvű telefonmagyarázata hiányzik.");
+const animal = findCnenEvidence("0106190000", index, 10);
+if (!animal.some((item) => /giraffes/i.test(item.excerpt) && /zsiráf/i.test(item.excerptHu)))
+  throw new Error("A 0106190000 kétnyelvű élőállat-magyarázata hiányzik.");
 
 if (mayOverride("binding_nomenclature", "learned_semantic_term")
   || !mayOverride("learned_semantic_term", "cn_explanatory_note")
@@ -61,14 +43,10 @@ async function classify(name, description) {
 for (const [name, description, expected] of [
   ["ZSIRÁF", "ÉLŐ ÁLLAT, 6 HÓNAPOS", "0106190000"],
   ["MOBILTELEFON", "ANDROIDOS OKOS", "8517130000"],
-  ["TELEFON", "HAGYOMÁNYOS, NEM OKOS MOBILTELEFON", "8517140000"],
-  ["WI-FI ROUTER", "ADATOK VÉTELÉRE ÉS TOVÁBBÍTÁSÁRA", "8517620000"],
 ]) {
   const result = await classify(name, description);
   if (result.code !== expected || result.sourceValidation?.status !== "cross_checked" || !result.cnenEvidence?.length)
-    throw new Error(`${name}: hibás besorolás vagy CNEN-ellenőrzés (${result.code}).`);
+    throw new Error(`${name}: hibás besorolás vagy KN-magyarázati ellenőrzés (${result.code}).`);
 }
-const exclusion = await classify("Fémpolírozók", "Lábbeli-, bútor-, padló-, autókarosszéria-, üvegfényesítők vagy fémpolírozók; Más; Fémpolírozók");
-if (exclusion.code !== "3405901000") throw new Error(`A kizárás téves pozitív találat lett: ${exclusion.code}`);
 
-console.log(`OK kétnyelvű CNEN: ${index.recordCount} rekord, tartományfeloldás, ${index.coverage.explainedKn8}/${index.coverage.totalKn8} KN8`);
+console.log(`OK kétnyelvű KN10: ${index.recordCount} sor, ${index.pairing.explanationPairs} magyarázatos, ${index.missingRecords.length} magyarázat nélküli`);

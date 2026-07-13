@@ -41,13 +41,13 @@ for (const marker of ['loading ? "is-loading"', "font-size:16px;font-weight:650"
   if (!(source + styles).includes(marker)) throw new Error(`Hiányzó visszafogott vizuális hierarchia: ${marker}`);
 console.log("OK lenyitható szekciók és futási állapotok vizuális hangsúlya csökkentve");
 
-for (const marker of ['L("Tartalom","Content")', 'topPanel==="content"', '/api/cnen-content', 'KN Magyarázó Megjegyzések', 'cnen-browser-grid', 'cnen-results', 'cnen-detail'])
+for (const marker of ['L("Tallózás","Browse")', 'topPanel==="content"', '/api/cnen-content', 'KN Magyarázó Megjegyzések', 'cnen-browser-grid', 'cnen-results', 'cnen-detail'])
   if (!(source + styles).includes(marker)) throw new Error(`Hiányzó KN-magyarázat tartalomböngésző: ${marker}`);
-console.log("OK felső Tartalom menü és reszponzív KN-magyarázat böngésző");
+console.log("OK felső Tallózás menü és reszponzív KN-magyarázat böngésző");
 
-for (const marker of ["cnenData.chapters", "cnen-chapter", "Kétjegyű KN-fejezetek", "headingHu", "Eredeti angol magyarázó szöveg"])
+for (const marker of ["cnenData.chapters", "cnen-chapter", "Kétjegyű KN-fejezetek", "headingHu", "Magyar magyarázó szöveg", "cnenSelected.contentHu"])
   if (!(source + styles).includes(marker)) throw new Error(`Hiányzó kétnyelvű, összecsukott KN-tartalomhierarchia: ${marker}`);
-console.log("OK kétjegyű, összecsukott KN-fejezetek és magyar hivatalos megnevezések");
+console.log("OK kétjegyű, összecsukott KN-fejezetek és nyelvfüggő magyarázószöveg");
 
 for (const marker of ["confirmedFacts", "option.confirmedFact", "option.labelEn", "option.appendTextEn"])
   if (!source.includes(marker)) throw new Error(`Hiányzó nyelvfüggetlen pontosítás-visszacsatolás: ${marker}`);
