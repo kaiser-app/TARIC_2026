@@ -8,44 +8,55 @@ function candidateSourceCodes(currentCode, index) {
   const mapped = (index.codeMappings || [])
     .filter((mapping) => mapping.current === currentEight)
     .map((mapping) => mapping.source);
-  // A kódolt CNEN-forrás 5 és 7 jegyű gyűjtőszinteket is tartalmaz.
-  // Ezek kihagyása esetén a magyarázat létezne az indexben, mégsem kerülne
-  // a döntési bizonyítékok közé.
   const currentLevels = [8, 7, 6, 5, 4]
     .map((length) => normalized.slice(0, length))
     .filter((code) => code.length >= 4);
   return [...new Set([...mapped, ...currentLevels])];
 }
 
-export function findCnenEvidence(currentCode, index, limit = 4) {
-  if (!currentCode || !index?.records || !index?.lookup) return [];
+function evidenceFromRecord(currentCode, index, record) {
   const normalized = digits(currentCode);
-  const sourceCandidates = candidateSourceCodes(normalized, index);
+  return {
+    id: `cnen-${index.source.documentDate}-${record.id}`,
+    authority: "cn_explanatory_note",
+    authorityWeight: SOURCE_AUTHORITY.cn_explanatory_note,
+    binding: false,
+    currentCode: normalized,
+    sourceCodes: record.c,
+    scopeType: record.s || "single",
+    heading: record.h,
+    headingHu: record.hHu || null,
+    excerpt: String(record.t || "").slice(0, 2000),
+    excerptHu: String(record.tHu || "").slice(0, 2000),
+    ruleTypes: record.y,
+    referencedCodes: record.r,
+    pdfPage: record.p,
+    printedPage: record.n,
+    pdfPageHu: record.pHu,
+    printedPageHu: record.nHu,
+    mappedFromOlderCode: !(record.c || []).some((code) => normalized.startsWith(code)),
+  };
+}
+
+export function findCnenEvidence(currentCode, index, limit = 4) {
+  if (!currentCode || !index?.records) return [];
+  const normalized = digits(currentCode);
+  const currentIds = index.currentLookup?.[normalized.slice(0, 8)] || [];
+  if (currentIds.length) return currentIds
+    .slice(0, limit)
+    .map((id) => index.records[id])
+    .filter(Boolean)
+    .map((record) => evidenceFromRecord(normalized, index, record));
+  if (!index.lookup) return [];
   const result = [];
   const seen = new Set();
-  for (const sourceCode of sourceCandidates) {
+  for (const sourceCode of candidateSourceCodes(normalized, index)) {
     for (const id of index.lookup[sourceCode] || []) {
       if (seen.has(id)) continue;
       seen.add(id);
       const record = index.records[id];
       if (!record) continue;
-      result.push({
-        id: `cnen-${index.source.documentDate}-${id}`,
-        authority: "cn_explanatory_note",
-        authorityWeight: SOURCE_AUTHORITY.cn_explanatory_note,
-        binding: false,
-        currentCode: normalized,
-        sourceCodes: record.c,
-        heading: record.h,
-        // A teljes szöveg a tartalomböngészőből érhető el; a tarifálási
-        // válaszban korlátozott kivonatot adunk, hogy az API-válasz kicsi maradjon.
-        excerpt: record.t.slice(0, 2000),
-        ruleTypes: record.y,
-        referencedCodes: record.r,
-        pdfPage: record.p,
-        printedPage: record.n,
-        mappedFromOlderCode: !record.c.some((code) => normalized.startsWith(code)),
-      });
+      result.push(evidenceFromRecord(normalized, index, record));
       if (result.length >= limit) return result;
     }
   }
@@ -86,7 +97,7 @@ export function attachClassificationSources(payload, index) {
   ];
   if (evidence.length) legalSources.push({
     id: `cnen-${index.source.documentDate}`,
-    label: "KN Magyarázat (CNEN)",
+    label: "Kétnyelvű KN Magyarázat (CNEN)",
     authority: "cn_explanatory_note",
     authorityWeight: SOURCE_AUTHORITY.cn_explanatory_note,
     binding: false,
@@ -94,6 +105,7 @@ export function attachClassificationSources(payload, index) {
     celex: index.source.celex,
     documentDate: index.source.documentDate,
     consolidation: index.source.consolidation,
+    languages: index.source.languages || ["EN"],
   });
   return {
     ...payload,
@@ -105,6 +117,7 @@ export function attachClassificationSources(payload, index) {
       explanatoryNoteDate: index.source.documentDate,
       explanatoryNoteBinding: false,
       mappedOlderCode: evidence.some((item) => item.mappedFromOlderCode),
+      bilingual: Boolean(index.source.languages?.includes("HU")),
       authorityFloor: "binding_nomenclature",
     },
   };
