@@ -1,0 +1,22 @@
+:root{--content-block-gap:18px}
+
+/* A fő űrlap, az eredménykártyák és az alsó státuszsor azonos ritmusban követik egymást. */
+main>.agent-panel{margin-bottom:0}
+main>.result{margin:var(--content-block-gap) 0 0}
+main>.grid{margin:var(--content-block-gap) 0 22px}
+
+/* A KN Magyarázó Megjegyzések blokk mérete állandó, a két belső panel külön görgethető. */
+.cnen-browser{height:650px;max-height:calc(100vh - 72px);min-height:520px;display:flex;flex-direction:column;overflow:hidden}
+.cnen-browser-grid{flex:1;min-height:0;max-height:none}
+.cnen-results,.cnen-detail{min-height:0;overflow-y:scroll;scrollbar-gutter:stable}
+
+.cnen-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.cnen-use-code{min-height:37px;border:0;border-radius:10px;background:#185c3e;color:#fff;padding:8px 12px;font-weight:750;cursor:pointer}
+.cnen-use-code:hover{background:#124a31}
+
+@media(max-width:700px){
+  .cnen-browser{height:auto;max-height:none;min-height:0;overflow:visible}
+  .cnen-browser-grid{max-height:none}
+  .cnen-results{max-height:270px}
+  .cnen-detail{max-height:440px}
+}
