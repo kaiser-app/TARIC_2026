@@ -1,5 +1,16 @@
 :root{--content-block-gap:18px}
 
+/* A fő oldal blokkjainak vizuális sorrendje akkor is stabil, ha a forrás JSX sorrendje eltér. */
+main{display:flex;flex-direction:column}
+main>nav{order:0}
+main>.top-drawer:not(.cnen-browser){order:1}
+main>.hero{order:2}
+main>.cnen-browser{order:3}
+main>.agent-panel{order:4}
+main>.result{order:5}
+main>.grid{order:6}
+main>footer{order:7}
+
 /* A fő űrlap, az eredménykártyák és az alsó státuszsor azonos ritmusban követik egymást. */
 main>.hero{padding-bottom:var(--content-block-gap)}
 main>.cnen-browser{margin:0 0 var(--content-block-gap);border-radius:18px}
