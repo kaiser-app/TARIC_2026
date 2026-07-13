@@ -7,14 +7,14 @@
     "patch:ui": "node scripts/patch-ui-source.mjs",
     "predev": "npm run patch:ui",
     "dev": "vite",
-    "prepare:cnen": "node scripts/prepare-render-data.mjs && node scripts/prepare-cnen-runtime.mjs",
+    "prepare:cnen": "node scripts/prepare-render-data.mjs && node scripts/prepare-measures-runtime.mjs && node scripts/prepare-cnen-runtime.mjs",
     "prebuild": "npm run patch:ui",
     "build": "npm run prepare:cnen && vite build",
     "preview": "vite preview",
     "start": "node server.mjs",
     "import:data": "node scripts/import-taric.mjs",
     "pretest": "npm run patch:ui",
-    "test": "npm run prepare:cnen && node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/ui-progress.test.mjs && node tests/ui-language.test.mjs"
+    "test": "npm run prepare:cnen && node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/measures.test.mjs && node tests/ui-progress.test.mjs && node tests/ui-language.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
