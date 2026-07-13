@@ -6,6 +6,8 @@ import { mayOverride, SOURCE_AUTHORITY } from "../netlify/functions/lib/source-a
 const index = await loadCnenIndex();
 if (index.source?.contentFormat !== "kn10-row-bilingual" || index.recordCount !== 25820 || index.records?.length !== 25820)
   throw new Error("A kétnyelvű KN10-index nem őrzi meg mind a 25 820 sort.");
+if (index.source.documentDate !== "2026-02-13" || index.source.currentCodeEdition !== "2026")
+  throw new Error("A KN Magyarázó Megjegyzések dokumentumdátuma vagy kódkiadása hiányzik.");
 if (!index.source.languages?.includes("EN") || !index.source.languages?.includes("HU")
   || index.pairing?.matchedRows !== 25820
   || index.pairing?.explanationPairs !== 19538
@@ -31,8 +33,9 @@ if (mayOverride("binding_nomenclature", "learned_semantic_term")
   throw new Error("A forráshierarchia sorrendje hibás.");
 const enriched = attachClassificationSources({ status: "classified", code: "8517130000", dataDate: index.coverage.dataDate, path: [] }, index);
 if (enriched.sourceValidation.status !== "cross_checked" || enriched.sourceValidation.bilingual !== true
+  || enriched.sourceValidation.explanatoryNoteDate !== "2026-02-13"
   || enriched.legalSources[0].binding !== true)
-  throw new Error("A kétnyelvű jogforrási ellenőrzés nem került a válaszba.");
+  throw new Error("A kétnyelvű jogforrási ellenőrzés vagy a dokumentumdátum nem került a válaszba.");
 
 async function classify(name, description) {
   const response = await agent(new Request("http://local/api/tariff-agent", {
@@ -47,6 +50,8 @@ for (const [name, description, expected] of [
   const result = await classify(name, description);
   if (result.code !== expected || result.sourceValidation?.status !== "cross_checked" || !result.cnenEvidence?.length)
     throw new Error(`${name}: hibás besorolás vagy KN-magyarázati ellenőrzés (${result.code}).`);
+  if (result.sourceValidation.explanatoryNoteDate !== "2026-02-13")
+    throw new Error(`${name}: a KN Magyarázat dátuma nem jelenik meg.`);
 }
 
-console.log(`OK kétnyelvű KN10: ${index.recordCount} sor, ${index.pairing.explanationPairs} magyarázatos, ${index.missingRecords.length} magyarázat nélküli`);
+console.log(`OK kétnyelvű KN10: ${index.recordCount} sor, ${index.pairing.explanationPairs} magyarázatos, ${index.missingRecords.length} magyarázat nélküli, dátum ${index.source.documentDate}`);

@@ -3,15 +3,18 @@ name: Verify 25 820-row bilingual KN10 source
 on:
   push:
     branches:
-      - agent/kn10-json-25820-final-20260713
+      - main
+      - "agent/**"
     paths:
       - ".github/workflows/verify-kn10-25820.yml"
       - "data/source/kn10/**"
       - "scripts/build-kn10-explanations-from-zips.mjs"
       - "scripts/prepare-kn10-json-runtime.mjs"
       - "scripts/prepare-cnen-runtime.mjs"
+      - "scripts/prepare-measures-runtime.mjs"
       - "netlify/functions/lib/cnen-index-data.mjs"
       - "netlify/functions/lib/cnen-rules.mjs"
+      - "netlify/functions/measures.mjs"
       - "tests/**"
       - "package.json"
       - "package-lock.json"
@@ -21,8 +24,10 @@ on:
       - "scripts/build-kn10-explanations-from-zips.mjs"
       - "scripts/prepare-kn10-json-runtime.mjs"
       - "scripts/prepare-cnen-runtime.mjs"
+      - "scripts/prepare-measures-runtime.mjs"
       - "netlify/functions/lib/cnen-index-data.mjs"
       - "netlify/functions/lib/cnen-rules.mjs"
+      - "netlify/functions/measures.mjs"
       - "tests/**"
       - "package.json"
       - "package-lock.json"
@@ -48,7 +53,7 @@ jobs:
           echo "619d50c235cbb1f937e65fc83ec93d34a0dddfab9408c0742799e4080f416015  data/source/kn10/kn10_magyarazatok_EN.zip" | sha256sum --check
       - name: Prepare UI source
         run: npm run patch:ui
-      - name: Prepare KN10 runtime data
+      - name: Prepare runtime data
         run: npm run prepare:cnen
       - name: Test tariff agent
         run: node tests/tariff-agent.test.mjs
@@ -58,6 +63,8 @@ jobs:
         run: node tests/cnen-rules.test.mjs
       - name: Test KN10 content API
         run: node tests/cnen-content.test.mjs
+      - name: Test measures endpoint
+        run: node tests/measures.test.mjs
       - name: Test UI progress
         run: node tests/ui-progress.test.mjs
       - name: Test UI language and layout

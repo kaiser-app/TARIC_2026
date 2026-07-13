@@ -48,6 +48,13 @@ function hydrateDirectIndex(index) {
     for (const ids of Object.values(target)) ids.sort((left, right) => records[right].sp - records[left].sp || left - right);
   return {
     ...index,
+    source: {
+      documentDate: "2026-02-13",
+      consolidation: "016.001",
+      celex: "02019XC0329(02)-20260213",
+      currentCodeEdition: "2026",
+      ...index.source,
+    },
     records,
     exactLookup,
     currentLookup,
