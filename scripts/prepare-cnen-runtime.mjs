@@ -16,8 +16,9 @@ const run = (script) => {
 
 if (await exists(huZip) && await exists(enZip)) {
   run("scripts/build-kn10-explanations-from-zips.mjs");
+  run("scripts/prepare-kn10-json-runtime.mjs");
 } else if (await exists(directIndex)) {
-  console.log("A 25 820 soros KN10 magyarázat-index már rendelkezésre áll.");
+  run("scripts/prepare-kn10-json-runtime.mjs");
 } else if (await exists(generatedSource) || await exists(compressedSourcePart)) {
   run("scripts/resolve-bilingual-cnen.mjs");
 } else {
