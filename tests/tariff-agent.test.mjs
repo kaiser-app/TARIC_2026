@@ -212,10 +212,41 @@ const sunglassesResponse = await agent(new Request("http://local/api/tariff-agen
   body: JSON.stringify({ name: "NAPSZEMÜVEG", description: "FÉM KERETTEL, DIOPTRIA NÉLKÜL, FEKETE LENCSÉVEL" })
 }));
 const sunglasses = await sunglassesResponse.json();
-if (sunglasses.code !== "9004100000" || sunglasses.status === "clarification")
-  throw new Error(`A pontos napszemüveg-találat hibás: ${sunglasses.code}, ${sunglasses.clarification}`);
+if (sunglasses.status !== "clarification" || !/lencs.*optikai|lencs.*anyag/i.test(sunglasses.clarification || ""))
+  throw new Error(`A hiányos napszemüveg-adatnál nem a lencse pontosítását kéri: ${sunglasses.code}, ${sunglasses.clarification}`);
 if (sunglasses.factsUsed?.extracted?.canonicalProduct === "fekete")
   throw new Error("A fekete színt a rendszer továbbra is termékfogalomként kezeli.");
-if (sunglasses.path?.some((row) => /^03/.test(row.code)) || sunglasses.path?.some((row) => row.description?.includes("polivinilkloridfilm")))
-  throw new Error("Színalapú irreleváns hal- vagy fóliatalálat maradt az eredményben.");
-console.log("OK napszemüveg + fekete lencse → 9004100000, színalapú zaj nélkül");
+if (sunglasses.path?.some((row) => !/^9004/.test(row.code)) || sunglasses.path?.some((row) => row.description?.includes("polivinilkloridfilm")))
+  throw new Error("A napszemüveg kérdésében irreleváns tarifális ág maradt.");
+console.log("OK hiányos napszemüveg → konkrét lencsekérdés, irreleváns ág nélkül");
+
+const plainGlassesResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "SZEMÜVEG", description: "" })
+}));
+const plainGlasses = await plainGlassesResponse.json();
+if (plainGlasses.status !== "clarification" || !/milyen típusú szemüveg/i.test(plainGlasses.clarification || ""))
+  throw new Error(`Az általános szemüveg-megnevezésnél nem a terméktípust kéri: ${plainGlasses.code}, ${plainGlasses.clarification}`);
+if (plainGlasses.clarificationOptions?.length !== 3 || plainGlasses.path?.some((row) => !/^9004/.test(row.code)))
+  throw new Error("A szemüveg pontosítási lehetőségei vagy tarifális ága hibás.");
+if (plainGlasses.path?.some((row) => /^4202/.test(row.code)))
+  throw new Error("A szemüveget a rendszer ismét szemüvegtokként kezelte.");
+console.log("OK szemüveg → konkrét típusválasztás a 9004 ágon");
+
+const correctiveResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "SZEMÜVEG", description: "DIOPTRIÁS, MŰANYAG LENCSÉVEL" })
+}));
+const corrective = await correctiveResponse.json();
+if (corrective.code !== "9004901000" || corrective.engine !== "profile-engine-v1")
+  throw new Error(`A dioptriás műanyag lencsés szemüveg besorolása hibás: ${corrective.code}, ${corrective.clarification}`);
+console.log("OK dioptriás műanyag lencsés szemüveg → 9004901000");
+
+const plasticSunglassesResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "NAPSZEMÜVEG", description: "DIOPTRIA NÉLKÜL, MŰANYAG LENCSÉVEL" })
+}));
+const plasticSunglasses = await plasticSunglassesResponse.json();
+if (plasticSunglasses.code !== "9004109100" || plasticSunglasses.engine !== "profile-engine-v1")
+  throw new Error(`A műanyag lencsés napszemüveg besorolása hibás: ${plasticSunglasses.code}, ${plasticSunglasses.clarification}`);
+console.log("OK műanyag lencsés napszemüveg → 9004109100");
