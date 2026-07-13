@@ -8,7 +8,10 @@ function candidateSourceCodes(currentCode, index) {
   const mapped = (index.codeMappings || [])
     .filter((mapping) => mapping.current === currentEight)
     .map((mapping) => mapping.source);
-  const currentLevels = [8, 6, 4]
+  // A kódolt CNEN-forrás 5 és 7 jegyű gyűjtőszinteket is tartalmaz.
+  // Ezek kihagyása esetén a magyarázat létezne az indexben, mégsem kerülne
+  // a döntési bizonyítékok közé.
+  const currentLevels = [8, 7, 6, 5, 4]
     .map((length) => normalized.slice(0, length))
     .filter((code) => code.length >= 4);
   return [...new Set([...mapped, ...currentLevels])];
@@ -34,7 +37,9 @@ export function findCnenEvidence(currentCode, index, limit = 4) {
         currentCode: normalized,
         sourceCodes: record.c,
         heading: record.h,
-        excerpt: record.t,
+        // A teljes szöveg a tartalomböngészőből érhető el; a tarifálási
+        // válaszban korlátozott kivonatot adunk, hogy az API-válasz kicsi maradjon.
+        excerpt: record.t.slice(0, 2000),
         ruleTypes: record.y,
         referencedCodes: record.r,
         pdfPage: record.p,
