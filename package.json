@@ -14,7 +14,7 @@
     "start": "node server.mjs",
     "import:data": "node scripts/import-taric.mjs",
     "pretest": "npm run patch:ui",
-    "test": "npm run prepare:cnen && node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/measures.test.mjs && node tests/taric-link.test.mjs && node tests/ui-progress.test.mjs && node tests/ui-language.test.mjs"
+    "test": "npm run prepare:cnen && node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/measures.test.mjs && node tests/taric-link.test.mjs && node tests/ui-progress.test.mjs && node tests/ui-language.test.mjs && node tests/ai-menu.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
