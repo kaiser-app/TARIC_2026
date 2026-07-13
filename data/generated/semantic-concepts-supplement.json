@@ -1,0 +1,60 @@
+{
+  "version": "V0P1.1",
+  "source": "tarifalasi_fogalomtarV0P1.xlsx – tarifális fogalomkiegészítés",
+  "recordCount": 4,
+  "lookup": {
+    "szemuveg": [0],
+    "napszemuveg": [1],
+    "napvedo szemuveg": [1],
+    "vedoszemuveg": [2],
+    "munkavedelmi szemuveg": [2],
+    "dioptrias szemuveg": [3],
+    "latasjavito szemuveg": [3],
+    "korrekcios szemuveg": [3]
+  },
+  "records": [
+    {
+      "t": "szemüveg",
+      "n": "szemuveg",
+      "c": "optikai eszköz",
+      "f": "A látás javítására, a szem védelmére vagy a napfény csökkentésére viselt, lencséből és keretből álló eszköz.",
+      "m": "",
+      "s": ["napszemüveg", "védőszemüveg", "dioptriás szemüveg"],
+      "r": "H",
+      "concept": "eyewear"
+    },
+    {
+      "t": "napszemüveg",
+      "n": "napszemuveg",
+      "c": "optikai eszköz",
+      "f": "A napfény és az ultraibolya sugárzás szemre jutó mennyiségének csökkentésére viselt szemüveg.",
+      "m": "",
+      "s": ["napvédő szemüveg"],
+      "r": "H",
+      "concept": "eyewear",
+      "a": { "sunglasses": true }
+    },
+    {
+      "t": "védőszemüveg",
+      "n": "vedoszemuveg",
+      "c": "védőeszköz",
+      "f": "A szem mechanikai, vegyi vagy más környezeti hatások elleni védelmére viselt szemüveg.",
+      "m": "",
+      "s": ["munkavédelmi szemüveg"],
+      "r": "H",
+      "concept": "eyewear",
+      "a": { "protectiveEyewear": true }
+    },
+    {
+      "t": "dioptriás szemüveg",
+      "n": "dioptrias szemuveg",
+      "c": "optikai eszköz",
+      "f": "A látás javítására szolgáló, optikailag megmunkált lencsével készült szemüveg.",
+      "m": "",
+      "s": ["látásjavító szemüveg", "korrekciós szemüveg"],
+      "r": "H",
+      "concept": "eyewear",
+      "a": { "correctiveEyewear": true, "opticallyWorkedLens": true }
+    }
+  ]
+}
