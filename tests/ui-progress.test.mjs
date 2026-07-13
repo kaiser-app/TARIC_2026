@@ -32,3 +32,7 @@ console.log("OK AAF sorok egy sorba csoportosítva, lenyitható kiegészítő k�
 for (const marker of ["grid-template-columns:60px minmax(0,1fr) 90px 100px", "text-align:right", "width:100px"])
   if (!styles.includes(marker)) throw new Error(`Hiányzó fix kód-/jelvényoszlop igazítás: ${marker}`);
 console.log("OK intézkedési kódok jobb széle fix függőleges vonalra igazítva");
+
+for (const marker of ['loading ? "is-loading"', "font-size:16px;font-weight:650", ".agent-submit.is-loading", "background:#6f8278", "font-weight:600;opacity:1"])
+  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó visszafogott vizuális hierarchia: ${marker}`);
+console.log("OK lenyitható szekciók és futási állapotok vizuális hangsúlya csökkentve");
