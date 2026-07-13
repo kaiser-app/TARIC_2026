@@ -13,6 +13,10 @@ const replacements = [
     '<h4>{L("Eredeti angol magyarázó szöveg","Explanatory note")}</h4><p>{cnenSelected.content}</p>',
     '<h4>{L("Magyar magyarázó szöveg","Explanatory note")}</h4><p>{lang==="hu"?(cnenSelected.contentHu||cnenSelected.content):cnenSelected.content}</p>',
   ],
+  [
+    'const clean = (value) => value.replace(/\\D/g, "").slice(0, 10);',
+    'const clean = (value) => String(value ?? "").replace(/\\D/g, "").slice(0, 10);',
+  ],
 ];
 
 for (const [before, after] of replacements) {
@@ -23,11 +27,15 @@ for (const [before, after] of replacements) {
   source = source.replace(before, after);
 }
 
-if (!source.includes("const applyCnenSelection=")) {
+const oldHelper = `  const applyCnenSelection=(record)=>{\n    const selectedCode=clean(record?.requestedCode||record?.code||record?.codes?.[0]||"");\n    const hungarianName=String(record?.headingHu||record?.heading||"").trim();\n    if(selectedCode)setCode(selectedCode);\n    if(hungarianName)setProduct(hungarianName);\n    setQuery("");\n    setConfirmedFacts({});\n    setResult(null);\n    setMeasures(null);\n    setError("");\n    setTopPanel(null);\n    requestAnimationFrame(()=>{\n      document.querySelector(".agent-panel")?.scrollIntoView({behavior:"smooth",block:"start"});\n      document.querySelector(".agent-panel input")?.focus();\n    });\n  };\n`;
+const newHelper = `  const applyCnenSelection=async(record)=>{\n    const selectedPrefix=clean(record?.requestedCode||record?.code||record?.codes?.[0]||"");\n    let selectedCode=selectedPrefix;\n    let hungarianName=String(record?.headingHu||record?.heading||"").trim();\n    if(selectedPrefix){\n      try{\n        const taricData=await getJson(\`/api/taric-search?q=\${encodeURIComponent(selectedPrefix)}\`);\n        const candidates=(taricData.results||[]).filter((item)=>clean(item?.vtsz).startsWith(selectedPrefix));\n        const exactCandidate=candidates.find((item)=>clean(item?.vtsz)===selectedPrefix.padEnd(10,"0"));\n        const resolvedCandidate=exactCandidate||(candidates.length===1?candidates[0]:null);\n        if(resolvedCandidate){\n          selectedCode=clean(resolvedCandidate.vtsz);\n          hungarianName=String(resolvedCandidate.descriptionHu||hungarianName).trim();\n        }\n      }catch{}\n    }\n    if(selectedCode)setCode(selectedCode);\n    if(hungarianName)setProduct(hungarianName);\n    setQuery("");\n    setConfirmedFacts({});\n    setResult(null);\n    setMeasures(null);\n    setError("");\n    setTopPanel(null);\n    requestAnimationFrame(()=>{\n      document.querySelector(".agent-panel")?.scrollIntoView({behavior:"smooth",block:"start"});\n      document.querySelector(".agent-panel input")?.focus();\n    });\n  };\n`;
+
+if (source.includes(oldHelper)) {
+  source = source.replace(oldHelper, newHelper);
+} else if (!source.includes(newHelper)) {
   const anchor = '  const loadCnenSearch=async(searchValue=cnenQuery)=>{setCnenLoading(true);setCnenError("");try{const data=await getJson(`/api/cnen-content?q=${encodeURIComponent(searchValue)}&limit=50`);setCnenData(data);if(data.results?.length)await loadCnenRecord(data.results[0].code);else setCnenSelected(null);}catch(error){setCnenError(error.message);setCnenData(null);setCnenSelected(null);}finally{setCnenLoading(false);}};\n';
-  const helper = `  const applyCnenSelection=(record)=>{\n    const selectedCode=clean(record?.requestedCode||record?.code||record?.codes?.[0]||"");\n    const hungarianName=String(record?.headingHu||record?.heading||"").trim();\n    if(selectedCode)setCode(selectedCode);\n    if(hungarianName)setProduct(hungarianName);\n    setQuery("");\n    setConfirmedFacts({});\n    setResult(null);\n    setMeasures(null);\n    setError("");\n    setTopPanel(null);\n    requestAnimationFrame(()=>{\n      document.querySelector(".agent-panel")?.scrollIntoView({behavior:"smooth",block:"start"});\n      document.querySelector(".agent-panel input")?.focus();\n    });\n  };\n`;
   if (!source.includes(anchor)) throw new Error("A CNEN kereső függvény nem található az App.jsx fájlban.");
-  source = source.replace(anchor, `${anchor}${helper}`);
+  source = source.replace(anchor, `${anchor}${newHelper}`);
 }
 
 if (!source.includes('className="cnen-use-code"')) {
@@ -50,4 +58,4 @@ if (gridIndex !== -1 && firstResultIndex !== -1 && gridIndex < firstResultIndex)
 }
 
 await writeFile(appPath, source, "utf8");
-console.log("App.jsx nyelvi, tallózási és eredményelrendezési javítások alkalmazva.");
+console.log("App.jsx nyelvi, tallózási, kódátvételi és eredményelrendezési javítások alkalmazva.");
