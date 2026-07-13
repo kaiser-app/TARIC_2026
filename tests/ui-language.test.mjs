@@ -3,12 +3,13 @@ import { cnenHierarchyForCode } from "../src/cnen-hierarchy.js";
 
 const source = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
 const mainSource = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+const navSource = await readFile(new URL("../src/MainNavigation.jsx", import.meta.url), "utf8");
 const uiCss = await readFile(new URL("../src/ui-fixes.css", import.meta.url), "utf8");
 const aiSource = await readFile(new URL("../src/AiProviderPanel.jsx", import.meta.url), "utf8");
 const aiCss = await readFile(new URL("../src/ai-provider-panel.css", import.meta.url), "utf8");
 
-if (!source.includes('{L("Tallózás","Browse")}'))
-  throw new Error("A Tallózás/Browse menüfelirat nincs a forrásban.");
+if (!navSource.includes('{L("Tallózás", "Browse")}'))
+  throw new Error("A Tallózás/Browse menüfelirat nincs a navigációs komponensben.");
 
 if (!source.includes('lang==="hu"?(cnenSelected.contentHu||cnenSelected.content):cnenSelected.content'))
   throw new Error("A HU nézet nem a magyar contentHu mezőt használja.");
@@ -33,19 +34,21 @@ if (!source.includes('className="taric-code-input"')
   || !source.includes('clean(code).length<4'))
   throw new Error("A TARIC-kód mező kézi szerkesztése vagy elsődleges feldolgozása hiányzik.");
 
-if (!source.includes('topPanel==="ai"?"active":""')
+if (!source.includes('<MainNavigation topPanel={topPanel} setTopPanel={setTopPanel} lang={lang} setLang={setLang}/>')
   || !source.includes('topPanel==="ai"&&<AiProviderPanel')
   || !source.includes('const applyAiSelection=')
   || !source.includes('initialProduct={product}')
   || !source.includes('onApply={applyAiSelection}'))
-  throw new Error("Az AI gomb, a lenyíló szolgáltatópanel vagy a fő tarifálóba történő visszaadás hiányzik.");
+  throw new Error("Az egységes navigáció, az AI panel vagy a fő tarifálóba történő visszaadás hiányzik.");
 
-const aiMenuButton = '<button className={topPanel==="ai"?"active":""} onClick={()=>setTopPanel(topPanel==="ai"?null:"ai")}>AI</button>';
-const browseMenuButton = '<button className={topPanel==="content"?"active":""} onClick={()=>setTopPanel(topPanel==="content"?null:"content")}>{L("Tallózás","Browse")}</button>';
-const aiMenuIndex = source.indexOf(aiMenuButton);
-const browseMenuIndex = source.indexOf(browseMenuButton);
+const aiMenuButton = '<button type="button" className={topPanel === "ai" ? "active" : ""} onClick={() => togglePanel("ai")}>AI</button>';
+const browseMenuButton = '<button type="button" className={topPanel === "content" ? "active" : ""} onClick={() => togglePanel("content")}>{L("Tallózás", "Browse")}</button>';
+const aiMenuIndex = navSource.indexOf(aiMenuButton);
+const browseMenuIndex = navSource.indexOf(browseMenuButton);
 if (aiMenuIndex < 0 || browseMenuIndex < 0 || aiMenuIndex > browseMenuIndex)
   throw new Error("Az AI menüpontnak közvetlenül a Tallózás bal oldalán kell megjelennie.");
+if (source.includes('<div className="nav-actions">'))
+  throw new Error("A régi közvetlen navigációs gombok az App.jsx fájlban maradtak.");
 
 for (const label of ["Claude - Ügynök", "ChatGpt - GPT", "Gemini - Gem"])
   if (!aiSource.includes(label)) throw new Error(`Hiányzó AI szolgáltatófül: ${label}`);
@@ -104,4 +107,4 @@ if (!uiCss.includes("--content-block-gap:18px")
   || !aiCss.includes(".ai-provider-grid"))
   throw new Error("A Tallózás, az AI panel, a hierarchia, az egységes térköz vagy a szerkeszthető TARIC-mező stílusa hiányzik.");
 
-console.log("OK UI: AI a Tallózás bal oldalán; egyedi ChatGPT és Gemini célok; API nélküli Claude/ChatGPT/Gemini átadás, HU/EN tartalom és KN/TARIC-kódátvétel");
+console.log("OK UI: egységes navigáció AI-val a Tallózás bal oldalán; egyedi GPT/Gem célok és KN/TARIC-funkciók");
