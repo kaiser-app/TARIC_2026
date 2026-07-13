@@ -22,7 +22,7 @@ const conceptTerms = {
   aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
   sword: ["kard", "pallos", "pallos", "szablya", "katana", "szamurajkard", "szamuraj kard"],
   electronics: [
-    "mobiltelefon", "okostelefon", "okos telefon", "smartphone", "laptop", "notebook", "asztali szamitogep", "tablet",
+    "telefon", "mobiltelefon", "okostelefon", "okos telefon", "smartphone", "laptop", "notebook", "asztali szamitogep", "tablet",
     "szamitogep billentyuzet", "billentyuzet", "szamitogepes eger", "computer mouse", "dokumentszkenner", "szkenner",
     "nyomtato", "router", "ssd", "pendrive", "usb pendrive", "fejhallgato", "fulhallgato", "hangszoro", "hangfal",
     "digitalis fenykepezogep", "televizio", "monitor", "akkumulatortolto", "power bank", "mikrohullamu suto",
@@ -109,15 +109,19 @@ const electronicsTypeFrom = (name, description) => {
   if (/akkumulatortolto|telefon tolto|halozati tolto/.test(product)) return "battery_charger";
   if (/power bank|powerbank/.test(product)) return "power_bank";
   const namedAsMobilePhone = /mobiltelefon|okostelefon|smartphone/.test(product);
+  const namedAsTelephone = namedAsMobilePhone || containsTerm(product, "telefon");
   const nonSmartphoneMentioned = /nyomogombos|hagyomanyos|alkalmazasok futtatasara nem alkalmas|nem okostelefon|nem okos\b/.test(text);
   const smartphoneMentioned = !nonSmartphoneMentioned && (/okostelefon|smartphone/.test(text)
     || containsTerm(text, "okos telefon")
     || (namedAsMobilePhone && /\bokos\b/.test(text)));
-  const mobilePhoneMentioned = namedAsMobilePhone || smartphoneMentioned;
-  if (mobilePhoneMentioned) {
+  const cordlessWiredPhoneMentioned = /zsinor nelkuli.*vezetekes|vezetekes.*zsinor nelkuli/.test(text);
+  const wiredPhoneMentioned = cordlessWiredPhoneMentioned || /vezetekes|vonalas telefon|asztali telefon|landline/.test(text);
+  if (namedAsTelephone || smartphoneMentioned) {
+    if (cordlessWiredPhoneMentioned) return "cordless_wired_phone";
+    if (wiredPhoneMentioned) return "wired_phone";
     if (nonSmartphoneMentioned) return "other_mobile_phone";
     if (smartphoneMentioned || /android|\bios\b|\b5g\b|erintokepernyo|alkalmazas/.test(text)) return "smartphone";
-    return "mobile_phone";
+    return namedAsMobilePhone ? "mobile_phone" : "telephone";
   }
   if (/laptop|notebook|tablet/.test(product)) return "portable_computer";
   if (/asztali szamitogep|feldolgozoegyseg/.test(product)) return "processing_unit";
