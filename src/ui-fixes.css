@@ -1,6 +1,8 @@
 :root{--content-block-gap:18px}
 
 /* A fő űrlap, az eredménykártyák és az alsó státuszsor azonos ritmusban követik egymást. */
+main>.hero{padding-bottom:var(--content-block-gap)}
+main>.cnen-browser{margin:0 0 var(--content-block-gap);border-radius:18px}
 main>.agent-panel{margin-bottom:0}
 main>.result{margin:var(--content-block-gap) 0 0}
 main>.grid{margin:var(--content-block-gap) 0 22px}
