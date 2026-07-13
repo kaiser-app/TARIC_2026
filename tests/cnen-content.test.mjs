@@ -1,8 +1,9 @@
 import handler from "../netlify/functions/cnen-content.mjs";
 
 async function call(queryStringParameters = {}, httpMethod = "GET") {
-  const response = await handler({ httpMethod, queryStringParameters });
-  return { status: response.statusCode, data: JSON.parse(response.body) };
+  const params = new URLSearchParams(queryStringParameters);
+  const response = await handler(new Request(`http://local/api/cnen-content?${params}`, { method: httpMethod }));
+  return { status: response.status, data: await response.json() };
 }
 
 const browse = await call();

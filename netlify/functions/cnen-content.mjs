@@ -1,12 +1,11 @@
 import { loadCnenIndex } from "./lib/cnen-index-data.mjs";
 
-const json = (statusCode, payload) => ({
-  statusCode,
+const json = (status, payload) => new Response(JSON.stringify(payload), {
+  status,
   headers: {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "public, max-age=300, stale-while-revalidate=3600",
   },
-  body: JSON.stringify(payload),
 });
 
 const digits = (value) => String(value || "").replace(/\D/g, "").slice(0, 8);
@@ -74,13 +73,15 @@ function scoreText(item, query) {
   return score;
 }
 
-export default async function handler(event = {}) {
-  if ((event.httpMethod || "GET").toUpperCase() !== "GET")
+export default async function handler(request = {}) {
+  if ((request.method || request.httpMethod || "GET").toUpperCase() !== "GET")
     return json(405, { error: "A KN-magyarázat böngészője csak GET kérést fogad." });
 
   try {
     const { index, records } = await preparedIndex();
-    const params = event.queryStringParameters || {};
+    const params = request.url
+      ? Object.fromEntries(new URL(request.url, "http://localhost").searchParams)
+      : request.queryStringParameters || {};
     const requestedCode = digits(params.code);
     if (requestedCode) {
       let sourceCode = requestedCode;
