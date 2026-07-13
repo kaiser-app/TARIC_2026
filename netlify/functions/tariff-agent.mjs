@@ -79,8 +79,13 @@ export default async (request) => {
   const descriptionWords = norm(description + synonymText).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !ignored.has(w));
   const words = [...new Set([...nameWords, ...descriptionWords])],
     scored = [];
+  const animalAttributes = classificationSession.facts.inferredFacts?.attributes || {};
+  const hasAnimalTaxonomy = Boolean(animalAttributes.animalGroup || animalAttributes.animalClass || animalAttributes.tariffSpecies);
+  const excludesLiveAnimalChapter = hasAnimalTaxonomy
+    && !["unknown", "live"].includes(animalAttributes.animalState);
   for (const r of index.records) {
     if (!r.descriptionHu) continue;
+    if (excludesLiveAnimalChapter && r.vtsz.startsWith("01")) continue;
     const d = norm(r.descriptionHu);
     let score = 0;const descriptionTokens=d.split(/[^a-z0-9]+/).filter(Boolean);
     let nameMatches=0;
