@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "start": "node server.mjs",
     "import:data": "node scripts/import-taric.mjs",
-    "test": "node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/ui-progress.test.mjs"
+    "test": "node tests/tariff-agent.test.mjs && node tests/synonym-regression.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/ui-progress.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
