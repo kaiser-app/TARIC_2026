@@ -207,6 +207,37 @@ if (footwear.code !== "6403919600" || footwear.engine !== "profile-engine-v1")
   throw new Error(`A bőr bakancs nem az általános profilmotoron osztályozódott: ${footwear.code}, ${footwear.engine}`);
 console.log("OK bőr bakancs → általános profilmotor → 6403919600");
 
+const contextualCases = [
+  {
+    label: "nem kötött férfi ruhaegyüttes",
+    name: "Ruhaegyüttes",
+    description: "Férfi- vagy fiúöltöny, -ruhaegyüttes, -zakó, -blézer, -hosszúnadrág, vállpántos és melles munkanadrág (overall), -bricsesznadrág és -sortnadrág (a fürdőruha kivételével); ruhaegyüttes",
+    expected: "6203220000",
+  },
+  {
+    label: "nemesfém ékszer",
+    name: "Nemesfémből, nemesfémmel bevonva vagy plattírozva is",
+    description: "Ékszer és részei nemesfémből vagy nemesfémmel plattírozott fémből",
+    expected: "7113110000",
+  },
+  {
+    label: "bőr külsőtalp mint lábbelirész",
+    name: "Külső talp bőrből vagy mesterséges bőrből",
+    description: "Lábbelirész; külső talp bőrből vagy mesterséges bőrből",
+    expected: "6406906000",
+  },
+];
+for (const fixture of contextualCases) {
+  const response = await agent(new Request("http://local/api/tariff-agent", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name: fixture.name, description: fixture.description }),
+  }));
+  const result = await response.json();
+  if (result.code !== fixture.expected)
+    throw new Error(`A teljes leírás nem oldotta fel helyesen a többértelmű megnevezést (${fixture.label}): ${result.code}, ${result.clarification}`);
+}
+console.log("OK több helyen előforduló megnevezések → teljes leírás szerinti ág");
+
 const sunglassesResponse = await agent(new Request("http://local/api/tariff-agent", {
   method: "POST", headers: { "content-type": "application/json" },
   body: JSON.stringify({ name: "NAPSZEMÜVEG", description: "FÉM KERETTEL, DIOPTRIA NÉLKÜL, FEKETE LENCSÉVEL" })
