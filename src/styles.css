@@ -23,6 +23,7 @@ footer{padding:30px 0 50px;color:#738078;font-size:12px}@media(max-width:850px){
 .collapsible-result>summary,.calculation-card>summary{padding:18px 22px;font-size:16px;font-weight:650;color:#32433a}
 .collapsible-result[open]>summary,.calculation[open]>summary{border-bottom-color:#e5ebe7}
 .collapsible-body{padding:18px 22px 22px}
+.source-validation{display:flex;flex-wrap:wrap;gap:7px 10px;align-items:center;margin:16px 0 10px;padding:10px 12px;border-radius:9px;background:#f2f7f4;color:#486156;font-size:12px}.source-validation b{color:#245b43}.source-validation span+span:before{content:"·";margin-right:10px;color:#8aa094}
 .calculation>summary{font-weight:650;color:#365a49}
 .calculation-card .calculation-body{padding:18px 22px 22px}
 .collapsible-result .count{background:#edf5f0;color:#47715d;font-weight:600;letter-spacing:.05em;padding:5px 8px}
