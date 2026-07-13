@@ -1,0 +1,96 @@
+name: Build bilingual CNEN source
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-bilingual-cnen-source.yml"
+      - "scripts/build-bilingual-cnen.py"
+      - ".github/trigger-cnen-source"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bilingual-cnen-source
+  cancel-in-progress: false
+
+jobs:
+  generate-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF extraction utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+
+      - name: Download and validate official EUR-Lex sources
+        run: |
+          mkdir -p data/cache
+          USER_AGENT='Mozilla/5.0 (X11; Linux x86_64) TARIC-2026/1.0'
+          curl --fail --location --retry 5 --retry-all-errors --connect-timeout 20 \
+            --user-agent "$USER_AGENT" --header 'Accept: application/pdf,*/*' \
+            'https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX%3A02019XC0329%2802%29-20260213' \
+            --output data/cache/cnen-en-20260213.pdf
+          curl --fail --location --retry 5 --retry-all-errors --connect-timeout 20 \
+            --user-agent "$USER_AGENT" --header 'Accept: application/pdf,*/*' \
+            'https://eur-lex.europa.eu/legal-content/HU/TXT/PDF/?uri=CELEX%3A02019XC0329%2802%29-20260213' \
+            --output data/cache/cnen-hu-20260213.pdf
+          test "$(head -c 5 data/cache/cnen-en-20260213.pdf)" = "%PDF-"
+          test "$(head -c 5 data/cache/cnen-hu-20260213.pdf)" = "%PDF-"
+          test "$(stat -c%s data/cache/cnen-en-20260213.pdf)" -gt 1000000
+          test "$(stat -c%s data/cache/cnen-hu-20260213.pdf)" -gt 1000000
+
+      - name: Generate compressed bilingual source
+        run: |
+          python3 scripts/build-bilingual-cnen.py \
+            data/cache/cnen-en-20260213.pdf \
+            data/cache/cnen-hu-20260213.pdf \
+            --output data/generated/cnen-bilingual-source.json \
+            --parts-base data/source/cnen-bilingual-source.json \
+            --qa data/source/cnen-bilingual-qa.json \
+            --part-size 500000
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          qa = json.loads(Path('data/source/cnen-bilingual-qa.json').read_text(encoding='utf-8'))
+          assert qa['matchedRecords'] == 2619, qa
+          assert 1 <= qa['compressedPartCount'] <= 64, qa
+          print(qa)
+          PY
+
+      - name: Verify resolved index and application build
+        run: |
+          npm ci
+          node scripts/prepare-render-data.mjs
+          node scripts/resolve-bilingual-cnen.mjs
+          node tests/cnen-rules.test.mjs
+          node tests/cnen-content.test.mjs
+          npm run patch:ui
+          npx vite build
+
+      - name: Commit compressed source to main
+        run: |
+          git config user.name "cnen-source-bot"
+          git config user.email "cnen-source-bot@users.noreply.github.com"
+          git add -f data/source/cnen-bilingual-source.json.gz.b64.part* data/source/cnen-bilingual-qa.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Generate bilingual CNEN source: 2026-02-13"
+          git pull --rebase origin main
+          git push origin HEAD:main
