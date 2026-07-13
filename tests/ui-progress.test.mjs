@@ -40,3 +40,7 @@ console.log("OK intézkedési kódok jobb széle fix függőleges vonalra igazí
 for (const marker of ['loading ? "is-loading"', "font-size:16px;font-weight:650", ".agent-submit.is-loading", "background:#6f8278", "font-weight:600;opacity:1"])
   if (!(source + styles).includes(marker)) throw new Error(`Hiányzó visszafogott vizuális hierarchia: ${marker}`);
 console.log("OK lenyitható szekciók és futási állapotok vizuális hangsúlya csökkentve");
+
+for (const marker of ['L("Tartalom","Content")', 'topPanel==="content"', '/api/cnen-content', 'KN Magyarázó Megjegyzések', 'cnen-browser-grid', 'cnen-results', 'cnen-detail'])
+  if (!(source + styles).includes(marker)) throw new Error(`Hiányzó KN-magyarázat tartalomböngésző: ${marker}`);
+console.log("OK felső Tartalom menü és reszponzív KN-magyarázat böngésző");
