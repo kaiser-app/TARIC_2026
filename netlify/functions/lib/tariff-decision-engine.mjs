@@ -43,10 +43,22 @@ function liveAnimalDecision(facts, nomenclature, dataDate) {
     reasoning: "GRI 1 és 6: a leírás élő hüllőt azonosít.", clarification: null,
     factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
   };
-  if (a.animalGroup === "equine" && a.otherEquine) return {
+  if (a.animalGroup === "equine" && a.equineType === "donkey") return {
+    status: "classified", code: "0101300000", confidence: "magas",
+    path: pathFor(["0101000000", "0101300000"], nomenclature),
+    reasoning: "GRI 1 és 6: a leírás élő szamarat azonosít.", clarification: null,
+    factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  };
+  if (a.animalGroup === "equine" && a.equineType === "mule") return {
     status: "classified", code: "0101900000", confidence: "magas",
     path: pathFor(["0101000000", "0101900000"], nomenclature),
-    reasoning: "GRI 1 és 6: élő szamár, öszvér vagy más, a ló alszáma alatt külön nem nevesített lóféle.", clarification: null,
+    reasoning: "GRI 1 és 6: élő öszvér, lóöszvér vagy szamáröszvér.", clarification: null,
+    factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
+  };
+  if (a.animalGroup === "bird" && a.birdSpecies === "pigeon") return {
+    status: "classified", code: "0106391000", confidence: "magas",
+    path: pathFor(["0106000000", "0106300000", "0106391000"], nomenclature),
+    reasoning: "GRI 1 és 6: a leírás élő galambot azonosít.", clarification: null,
     factsUsed: { profile: profile.id, known: facts }, dataDate, engine: "profile-engine-v1",
   };
   if (a.animalGroup === "ornamental_fish" || a.ornamentalFish) {
