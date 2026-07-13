@@ -23,3 +23,7 @@ if (!source.includes("setProgressStage(null)"))
   throw new Error("A folyamatállapot nem áll vissza befejezéskor.");
 
 console.log("OK háromszakaszos folyamatjelző a betarifálási gombon");
+
+for (const marker of ['group.type === "AAF"', 'variants: aafGroups', 'group.variants.length} {L("verzió"', 'variant.additionalCodes?.join'])
+  if (!source.includes(marker)) throw new Error(`Hiányzó AAF-verziócsoportosítás: ${marker}`);
+console.log("OK AAF sorok egy sorba csoportosítva, lenyitható kiegészítő kódokkal");
