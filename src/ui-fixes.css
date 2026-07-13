@@ -5,6 +5,13 @@ main>.agent-panel{margin-bottom:0}
 main>.result{margin:var(--content-block-gap) 0 0}
 main>.grid{margin:var(--content-block-gap) 0 22px}
 
+/* A fejléc jobb oldali kódkártyája kézzel szerkeszthető KN/TARIC-kódot fogad. */
+.code-card{cursor:text}
+.code-card .taric-code-input{width:100%;margin:7px 0 5px;padding:0;border:0;border-radius:0;background:transparent;color:#fff;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:23px;font-weight:850;letter-spacing:.08em;box-shadow:none}
+.code-card .taric-code-input::placeholder{color:#fff;opacity:.5}
+.code-card .taric-code-input:focus{border:0!important;box-shadow:none!important;outline:0}
+.code-card small{line-height:1.35}
+
 /* A KN Magyarázó Megjegyzések blokk mérete állandó, a két belső panel külön görgethető. */
 .cnen-browser{height:650px;max-height:calc(100vh - 72px);min-height:520px;display:flex;flex-direction:column;overflow:hidden}
 .cnen-browser-grid{flex:1;min-height:0;max-height:none}
