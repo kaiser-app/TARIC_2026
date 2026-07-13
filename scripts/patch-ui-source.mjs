@@ -17,6 +17,30 @@ const replacements = [
     'const clean = (value) => value.replace(/\\D/g, "").slice(0, 10);',
     'const clean = (value) => String(value ?? "").replace(/\\D/g, "").slice(0, 10);',
   ],
+  [
+    '<div className="code-card"><span>{t.code}</span><strong>{grouped(code)}</strong><small>HS / KN / TARIC</small></div>',
+    '<label className="code-card"><span>{t.code}</span><input className="taric-code-input" inputMode="numeric" autoComplete="off" maxLength={10} value={code} onChange={(event)=>{setCode(clean(event.target.value));setResult(null);setMeasures(null);setError("");}} placeholder="0000000000" aria-label={t.code}/><small>{grouped(code)} · HS / KN / TARIC</small></label>',
+  ],
+  [
+    'if (normalizedInput) setCode("");',
+    'if (normalizedInput && clean(code).length < 4) setCode("");',
+  ],
+  [
+    'const classified = (product.trim() || inputText.trim()) ? await getJson("/api/tariff-agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: product.trim() || inputText.trim().split(/\\n+/)[0], description: normalizedInput, language: lang, confirmedFacts: factState }) }) : { status: "classified", code: clean(code), confidence: "megadott", path: [], reasoning: "Felhasználó által megadott TARIC-kód." };',
+    'const manualCode=clean(code);\n      const classified = manualCode.length>=4 ? { status: "classified", code: manualCode, confidence: L("megadott","provided"), path: [], reasoning: L("Felhasználó által megadott KN/TARIC-kód.","User-provided CN/TARIC code.") } : (product.trim() || inputText.trim()) ? await getJson("/api/tariff-agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: product.trim() || inputText.trim().split(/\\n+/)[0], description: normalizedInput, language: lang, confirmedFacts: factState }) }) : { status: "clarification", clarification: L("Legalább 4 számjegyű KN/TARIC-kód vagy termékleírás szükséges.","Enter at least a four-digit CN/TARIC code or a product description."), path: [] };',
+  ],
+  [
+    'disabled={loading || (!code && !product.trim() && !query.trim())}',
+    'disabled={loading || (clean(code).length<4 && !product.trim() && !query.trim())}',
+  ],
+  [
+    'onChange={(e) => {setProduct(e.target.value);setConfirmedFacts({});}}',
+    'onChange={(e) => {setProduct(e.target.value);setCode("");setResult(null);setMeasures(null);setConfirmedFacts({});}}',
+  ],
+  [
+    'onChange={(e) => {setQuery(e.target.value);setConfirmedFacts({});}}',
+    'onChange={(e) => {setQuery(e.target.value);setCode("");setResult(null);setMeasures(null);setConfirmedFacts({});}}',
+  ],
 ];
 
 for (const [before, after] of replacements) {
@@ -58,4 +82,4 @@ if (gridIndex !== -1 && firstResultIndex !== -1 && gridIndex < firstResultIndex)
 }
 
 await writeFile(appPath, source, "utf8");
-console.log("App.jsx nyelvi, tallózási, kódátvételi és eredményelrendezési javítások alkalmazva.");
+console.log("App.jsx nyelvi, tallózási, kézi kódbeviteli és eredményelrendezési javítások alkalmazva.");
