@@ -238,6 +238,74 @@ for (const fixture of contextualCases) {
 }
 console.log("OK több helyen előforduló megnevezések → teljes leírás szerinti ág");
 
+for (const fixture of [
+  { name: "KUTYA", description: "FÉL ÉVES, FEHÉR, TÖRZSKÖNYVEZETT PULI KUTYA" },
+  { name: "MACSKA", description: "8 HÓNAPOS, NŐSTÉNY, ÉLŐ HÁZIMACSKA" },
+  { name: "ZSIRÁF", description: "ÉLŐ ÁLLAT, 6 HÓNAPOS, TENYÉSZTÉSI CÉLRA" },
+]) {
+  const response = await agent(new Request("http://local/api/tariff-agent", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(fixture),
+  }));
+  const animal = await response.json();
+  if (animal.code !== "0106190000" || animal.engine !== "profile-engine-v1")
+    throw new Error(`Az élő állatot a rendszer nem élő más emlősként osztályozta: ${fixture.name}, ${animal.code}, ${animal.clarification}`);
+}
+const unknownLiveAnimalResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "AXOLOTL", description: "ÉLŐ ÁLLAT" }),
+}));
+const unknownLiveAnimal = await unknownLiveAnimalResponse.json();
+if (!/melyik fő állatcsoportba/i.test(unknownLiveAnimal.clarification || "") || unknownLiveAnimal.clarificationOptions?.length !== 6)
+  throw new Error(`Az indexben még nem szereplő élő állatnál nem taxonómiai kérdés jelent meg: ${unknownLiveAnimal.clarification}`);
+const dogFoodResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name: "KUTYAELEDEL", description: "száraz állateledel, 2 kg-os kiskereskedelmi kiszerelésben" }),
+}));
+const dogFood = await dogFoodResponse.json();
+if (dogFood.code === "0106190000" || dogFood.factsUsed?.extracted?.concepts?.includes("live_animal"))
+  throw new Error("A kutyaeledelt a rendszer élő kutyaként kezelte.");
+console.log("OK élő állat és neki szánt termék szerepe elkülönül");
+
+const aquaticCases = [
+  { name: "GUPPI", description: "ÉLŐ, ÉDESVÍZI AKVÁRIUMI DÍSZHAL", code: "0301110000" },
+  { name: "RÁKFÉLE", description: "ÉLŐ RÁK", path: "0306", question: /melyik rákfaj/i },
+  { name: "PUHATESTŰ", description: "ÉLŐ PUHATESTŰ ÁLLAT", path: "0307", question: /melyik puhatestű/i },
+  { name: "HAL", description: "ÉLŐ HAL", path: "0301", question: /díszhalról vagy más élő halfajról/i },
+];
+for (const fixture of aquaticCases) {
+  const response = await agent(new Request("http://local/api/tariff-agent", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(fixture),
+  }));
+  const aquatic = await response.json();
+  if (fixture.code && aquatic.code !== fixture.code)
+    throw new Error(`Az élő vízi állat kódja hibás: ${fixture.name}, ${aquatic.code}, ${aquatic.clarification}`);
+  if (fixture.path && (!aquatic.path?.some((row) => row.code.startsWith(fixture.path)) || !fixture.question.test(aquatic.clarification || "")))
+    throw new Error(`Az élő vízi állat nem a megfelelő ágon kapott fajspecifikus kérdést: ${fixture.name}, ${aquatic.clarification}`);
+}
+console.log("OK díszhal, más hal, rákféle és puhatestű élőállat-szerepe elkülönül");
+
+const cattleStateResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "MARHA", description: "" }),
+}));
+const cattleState = await cattleStateResponse.json();
+if (cattleState.status !== "clarification" || !/milyen állapotban kerül forgalomba/i.test(cattleState.clarification || "") || cattleState.clarificationOptions?.length !== 5)
+  throw new Error(`A puszta állatnévnél nem az áru állapotára kérdez: ${cattleState.code}, ${cattleState.clarification}`);
+const frozenCattleResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "MARHA", description: "FELEZETT, FAGYASZTOTT HÚS" }),
+}));
+const frozenCattle = await frozenCattleResponse.json();
+if (frozenCattle.code?.startsWith("01") || frozenCattle.path?.some((row) => row.code.startsWith("01")) || frozenCattle.factsUsed?.extracted?.concepts?.includes("live_animal"))
+  throw new Error("A fagyasztott marhahúst a rendszer élő állatként kezelte.");
+if (frozenCattle.factsUsed?.extracted?.inferredFacts?.attributes?.animalState !== "frozen")
+  throw new Error("A rendszer nem rögzítette a fagyasztott marhahús áruállapotát.");
+const calfStateResponse = await agent(new Request("http://local/api/tariff-agent", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "BORJÚ", description: "" }),
+}));
+const calfState = await calfStateResponse.json();
+if (!/milyen állapotban kerül forgalomba/i.test(calfState.clarification || ""))
+  throw new Error("A BORJÚ megnevezést a bőr anyagfogalom részszavas egyezése eltérítette.");
+console.log("OK állatnévnél az élő/vágott/hűtött/fagyasztott/feldolgozott állapot az első döntési kapu");
+
 const sunglassesResponse = await agent(new Request("http://local/api/tariff-agent", {
   method: "POST", headers: { "content-type": "application/json" },
   body: JSON.stringify({ name: "NAPSZEMÜVEG", description: "FÉM KERETTEL, DIOPTRIA NÉLKÜL, FEKETE LENCSÉVEL" })
