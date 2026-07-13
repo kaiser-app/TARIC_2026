@@ -21,6 +21,13 @@ const conceptTerms = {
   cage: ["kalitka", "madarkalitka", "allatketrec", "ketrec", "bird cage", "animal cage"],
   aquarium: ["akvarium", "haltarto medence", "halas akvarium", "fish tank"],
   sword: ["kard", "pallos", "pallos", "szablya", "katana", "szamurajkard", "szamuraj kard"],
+  electronics: [
+    "mobiltelefon", "okostelefon", "smartphone", "laptop", "notebook", "asztali szamitogep", "tablet",
+    "szamitogep billentyuzet", "billentyuzet", "szamitogepes eger", "computer mouse", "dokumentszkenner", "szkenner",
+    "nyomtato", "router", "ssd", "pendrive", "usb pendrive", "fejhallgato", "fulhallgato", "hangszoro", "hangfal",
+    "digitalis fenykepezogep", "televizio", "monitor", "akkumulatortolto", "power bank", "mikrohullamu suto",
+    "hajszarito", "villanyborotva", "videojatek konzol", "porszivo", "mosogep",
+  ],
 };
 
 const conceptKnowledge = {
@@ -79,6 +86,38 @@ const animalStateFrom = (value) => {
 };
 const mentionsLiveAnimal = (value) => animalStateFrom(value) === "live";
 const mentionsAnimalProductRole = (value) => !["unknown", "live"].includes(animalStateFrom(value));
+
+const electronicsTypeFrom = (name, description) => {
+  const product = normalize(name);
+  const text = normalize(`${name} ${description}`);
+  if (/akkumulatortolto|telefon tolto|halozati tolto/.test(product)) return "battery_charger";
+  if (/power bank|powerbank/.test(product)) return "power_bank";
+  if (/mobiltelefon|okostelefon|smartphone/.test(product)) {
+    if (/nyomogombos|hagyomanyos|alkalmazasok futtatasara nem alkalmas|nem okostelefon/.test(text)) return "other_mobile_phone";
+    if (/okostelefon|smartphone|android|\bios\b|\b5g\b|erintokepernyo|alkalmazas/.test(text)) return "smartphone";
+    return "mobile_phone";
+  }
+  if (/laptop|notebook|tablet/.test(product)) return "portable_computer";
+  if (/asztali szamitogep|feldolgozoegyseg/.test(product)) return "processing_unit";
+  if (/billentyuzet/.test(product)) return "keyboard";
+  if (/szamitogepes eger|computer mouse/.test(product)) return "computer_mouse";
+  if (/dokumentszkenner|szkenner/.test(product)) return "scanner";
+  if (/nyomtato/.test(product)) return "printer";
+  if (/router|utvonalvalaszto/.test(product)) return "router";
+  if (/\bssd\b|pendrive/.test(product)) return "solid_state_storage";
+  if (/fejhallgato|fulhallgato/.test(product)) return "headphones";
+  if (/hangszoro|hangfal/.test(product)) return "speaker";
+  if (/digitalis fenykepezogep/.test(product)) return "digital_camera";
+  if (/televizio|\btv\b/.test(product)) return "television";
+  if (/monitor/.test(product)) return "computer_monitor";
+  if (/mikrohullamu suto/.test(product)) return "microwave_oven";
+  if (/hajszarito/.test(product)) return "hair_dryer";
+  if (/villanyborotva|elektromos borotva/.test(product)) return "electric_shaver";
+  if (/videojatek konzol|jatekkonzol/.test(product)) return "game_console";
+  if (/porszivo/.test(product)) return "vacuum_cleaner";
+  if (/mosogep/.test(product)) return "washing_machine";
+  return null;
+};
 
 const ignoredDictionaryTerms = new Set([
   "anyag", "aru", "termek", "eszkoz", "keszulek", "szerkezet",
@@ -239,6 +278,19 @@ export function analyzeProductInput(name, description, semanticIndex) {
           : /\b(?:lo|poni)\b/.test(normalize(combinedText)) ? "horse"
           : null,
         birdSpecies: /galamb/.test(normalize(name)) || /galamb/.test(normalize(combinedText)) ? "pigeon" : null,
+        electronicsType: electronicsTypeFrom(name, description),
+        speakerCount: /ket hangszoro|ketto hangszoro|tobb hangszoro|sztereo/.test(normalize(combinedText)) ? "multiple"
+          : /egy hangszoro/.test(normalize(combinedText)) ? "single" : null,
+        storageRecorded: /felvetelt nem tartalmaz|ures tarolo/.test(normalize(combinedText)) ? false
+          : /felvetelt tartalmaz|adatot tartalmaz/.test(normalize(combinedText)) ? true : null,
+        computerConnectable: /szamitogephez|automatikus adatfeldolgozo gephez|\busb\b|halozati/.test(normalize(combinedText)),
+        lcdScreen: /\blcd\b|folyadekkristalyos/.test(normalize(combinedText)),
+        vacuumPowerW: normalize(combinedText).match(/\b(\d{2,4})\s*w\b/)?.[1] ?? null,
+        dustCapacityLitres: normalize(combinedText).match(/\bportartaly\s*(\d+(?:[.,]\d+)?)\s*(?:l|liter)/)?.[1]
+          ?? normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*(?:l|liter|literes)\s*(?:porzsak|portartaly)/)?.[1]
+          ?? null,
+        washingCapacityKg: normalize(combinedText).match(/\b(\d+(?:[.,]\d+)?)\s*kg\s*(?:szarazruha|ruha)/)?.[1] ?? null,
+        fullyAutomaticWashing: /automata|teljesen automatikus/.test(normalize(combinedText)),
         animalState: animalStateFrom(combinedText),
         liveAnimalKnown: animalStateFrom(combinedText) === "live",
         animalProductRole: mentionsAnimalProductRole(combinedText),
