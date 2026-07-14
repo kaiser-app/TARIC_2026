@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+// CI trigger: verify the idempotent UI patch on pull requests.
 const appPath = resolve("src/App.jsx");
 const source = await readFile(appPath, "utf8");
 
