@@ -1,3 +1,4 @@
 CI trigger for TARIC_2026 main branch after UI patch fix.
 Date: 2026-07-14
 Purpose: start GitHub Actions from the latest main source.
+Trigger sequence: 2
