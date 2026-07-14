@@ -1,0 +1,3 @@
+Fresh Render rebuild trigger after rollback to the pre-AI-menu release.
+Target commit: dee47ef3bceb8e12df4e14bda53f1ad76cd07252
+Reason: a service restart does not rebuild the Vite dist bundle.
