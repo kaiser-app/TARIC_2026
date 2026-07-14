@@ -3,6 +3,7 @@ import { beginClassification, finishClassification } from "./lib/classification-
 import { decideByProfiles } from "./lib/tariff-decision-engine.mjs";
 import { attachClassificationSources } from "./lib/cnen-rules.mjs";
 import { loadCnenIndex } from "./lib/cnen-index-data.mjs";
+import { kn10HierarchyFor } from "./lib/kn10-hierarchy.mjs";
 const norm = (s) =>
     String(s || "")
       .toLocaleLowerCase("hu")
@@ -78,8 +79,24 @@ export default async (request) => {
     });
   const [index, nom, semanticIndex, cnenIndex] = await loadClassificationData();
   const classificationSession = beginClassification(name, description, semanticIndex, b.confirmedFacts);
+  const kn10Tree = kn10HierarchyFor(nom);
+  const enrichWithHierarchy = (payload) => {
+    if (payload?.status !== "classified" || !payload.code) return payload;
+    const fullPath = kn10Tree.classificationPath(payload.code);
+    if (!fullPath.length) return payload;
+    const residualNote = kn10Tree.residualNote(payload.code);
+    return {
+      ...payload,
+      path: fullPath,
+      breadcrumb: kn10Tree.breadcrumb(payload.code),
+      residualNote,
+      reasoning: residualNote && payload.reasoning && !payload.reasoning.includes("gyűjtőág")
+        ? `${payload.reasoning} ${residualNote}`
+        : payload.reasoning,
+    };
+  };
   const respond = (payload, init) => Response.json(
-    attachClassificationSources(finishClassification(classificationSession.id, payload), cnenIndex),
+    attachClassificationSources(finishClassification(classificationSession.id, enrichWithHierarchy(payload)), cnenIndex),
     init,
   );
   const supplied = norm(name + " " + description);

@@ -12,3 +12,4 @@ data/source/*.xml
 data/source/*.zip
 data/generated/*.json
 public/cnen-missing.csv
+data/generated/measures-by-chapter/

@@ -1,7 +1,7 @@
 {
   "name": "taric-2026",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "patch:ui": "node scripts/patch-ui-source.mjs",
@@ -14,7 +14,7 @@
     "start": "node server.mjs",
     "import:data": "node scripts/import-taric.mjs",
     "pretest": "npm run patch:ui",
-    "test": "npm run prepare:cnen && node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/measures.test.mjs && node tests/taric-link.test.mjs && node tests/ui-progress.test.mjs && node tests/ui-language.test.mjs"
+    "test": "npm run prepare:cnen && node tests/kn10-hierarchy.test.mjs && node tests/tariff-agent.test.mjs && node tests/electronics.test.mjs && node tests/cnen-rules.test.mjs && node tests/cnen-content.test.mjs && node tests/measures.test.mjs && node tests/taric-link.test.mjs && node tests/ui-progress.test.mjs && node tests/ui-language.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

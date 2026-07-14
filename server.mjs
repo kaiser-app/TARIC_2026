@@ -7,12 +7,13 @@ import cnenContent from "./netlify/functions/cnen-content.mjs";
 import health from "./netlify/functions/health.mjs";
 import measures from "./netlify/functions/measures.mjs";
 import nomenclatureTree from "./netlify/functions/nomenclature-tree.mjs";
+import refreshData from "./netlify/functions/refresh-data.mjs";
 import tariffAgent from "./netlify/functions/tariff-agent.mjs";
 import taricSearch from "./netlify/functions/taric-search.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 const port = Number(process.env.PORT || 3000);
-const functions = new Map([["/api/classify", classify], ["/api/cnen-content", cnenContent], ["/api/health", health], ["/api/measures", measures], ["/api/nomenclature-tree", nomenclatureTree], ["/api/tariff-agent", tariffAgent], ["/api/taric-search", taricSearch]]);
+const functions = new Map([["/api/classify", classify], ["/api/cnen-content", cnenContent], ["/api/health", health], ["/api/measures", measures], ["/api/nomenclature-tree", nomenclatureTree], ["/api/refresh-data", refreshData], ["/api/tariff-agent", tariffAgent], ["/api/taric-search", taricSearch]]);
 const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp", ".ico": "image/x-icon" };
 const startedAt=Date.now(),usage={requests:0,bytesOut:0,errors:0,rateLimited:0,byDay:{}};
 const limits={perMinute:Number(process.env.API_LIMIT_PER_MINUTE||20),perDay:Number(process.env.API_LIMIT_PER_DAY||1000),perMonth:Number(process.env.API_LIMIT_PER_MONTH||20000),maxConcurrent:Number(process.env.API_MAX_CONCURRENT||3),maxRequestBytes:Number(process.env.API_MAX_REQUEST_BYTES||131072)};

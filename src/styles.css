@@ -40,3 +40,37 @@ footer{padding:30px 0 50px;color:#738078;font-size:12px}@media(max-width:850px){
 /* A KN-tartalom kétjegyű fejezetenként összecsukva indul; a négyszámjegyű
    vámtarifaszámok csak a választott fejezetben jelennek meg. */
 .cnen-chapters{display:grid;gap:5px}.cnen-chapter{border:1px solid #e1e7e3;border-radius:8px;background:#fff;overflow:hidden}.cnen-chapter>summary{display:grid;grid-template-columns:14px 30px minmax(0,1fr) auto;gap:7px;align-items:center;padding:10px;cursor:pointer;list-style:none}.cnen-chapter>summary::-webkit-details-marker{display:none}.cnen-chapter>summary:before{content:"▸";grid-column:1;color:#587065;font-size:10px}.cnen-chapter[open]>summary:before{content:"▾"}.cnen-chapter>summary code{grid-column:2;color:#156544;font-weight:850}.cnen-chapter>summary span{grid-column:3;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cnen-chapter>summary small{grid-column:4;background:#edf5f0;color:#486c5a;border-radius:999px;padding:3px 7px}.cnen-chapter>div{border-top:1px solid #e7ece9;padding:4px;background:#f8faf8}.cnen-results button.cnen-entry{width:100%;display:grid;grid-template-columns:86px 1fr;text-align:left;gap:2px 10px;border:0;border-radius:8px;background:transparent;padding:10px;cursor:pointer;color:#28372f}.cnen-results button.cnen-entry:hover,.cnen-results button.cnen-entry.selected{background:#e8f1ec}.cnen-results button.cnen-entry code{grid-row:1/4;color:#156544;font-weight:800;font-size:12px}.cnen-results button.cnen-entry span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.cnen-results button.cnen-entry small{color:#718078;font-size:10px}.cnen-results button.cnen-entry .cnen-english-heading{font-style:italic;color:#7a8881;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cnen-detail h4{margin:16px 0 6px;color:#496056;font-size:12px}.cnen-detail .cnen-original-heading{margin:9px 0 0;color:#738078;font-size:11px;line-height:1.4}
+
+/* ── KN hierarchia: breadcrumb, kontextusfa, Más-feloldás ───────────── */
+.cnen-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:10px 0 4px;font-size:.82rem;line-height:1.5}
+.cnen-breadcrumb .crumb{background:none;border:none;padding:2px 4px;border-radius:6px;color:#2f6f4f;cursor:pointer;text-align:left;font:inherit}
+.cnen-breadcrumb .crumb:hover{background:rgba(47,111,79,.1);text-decoration:underline}
+.cnen-breadcrumb .crumb.current{color:inherit;font-weight:600;cursor:default;text-decoration:none}
+.cnen-breadcrumb .crumb em,.context-desc em,.mas-resolution{display:block;font-style:normal;font-size:.74rem;opacity:.68;font-weight:400}
+.crumb-sep{opacity:.45}
+.cnen-context-tree{margin:10px 0 6px}
+.cnen-context-tree h4{margin:0 0 6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7}
+.context-rows{display:flex;flex-direction:column;gap:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem}
+.context-row{display:flex;align-items:baseline;gap:8px;background:none;border:none;border-radius:6px;padding:3px 6px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.context-row:hover{background:rgba(47,111,79,.08)}
+.context-row.selected{background:rgba(47,111,79,.14);font-weight:600}
+.context-row.sibling{opacity:.82}
+.context-row.child{opacity:.9}
+.context-row code{opacity:.75;white-space:nowrap}
+.context-dashes{opacity:.5;white-space:pre}
+.context-row small{margin-left:auto;font-size:.68rem;background:rgba(47,111,79,.12);color:#2f6f4f;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.context-desc{font-family:inherit}
+.mas-note{margin:8px 0 0;font-size:.76rem;opacity:.7;line-height:1.5}
+.result-breadcrumb{font-size:.82rem;opacity:.78;line-height:1.6;margin:2px 0 8px}
+.path .path-dashes{opacity:.45;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.path li span em.mas-resolution{margin-top:1px}
+
+/* ── AI és Frissítés lenyílók ───────────────────────────────────────── */
+.ai-drawer .ai-placeholder{opacity:.75}
+.refresh-packages{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.refresh-package{display:flex;align-items:center;gap:10px;border:1px solid rgba(0,0,0,.12);border-radius:10px;padding:9px 12px;text-decoration:none;color:inherit}
+.refresh-package:hover{border-color:#2f6f4f;background:rgba(47,111,79,.05)}
+.refresh-package code{font-weight:700;color:#2f6f4f}
+.refresh-package span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.refresh-package em{font-style:normal;font-size:.78rem;opacity:.7;white-space:nowrap}
+.refresh-actions{margin-top:8px}
