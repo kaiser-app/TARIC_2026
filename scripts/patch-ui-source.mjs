@@ -88,5 +88,36 @@ if (gridIndex !== -1 && firstResultIndex !== -1 && gridIndex < firstResultIndex)
   source = source.replace(footerMarker, `${gridBlock}${footerMarker}`);
 }
 
+if (!source.includes("const startRefresh=async()=>")) {
+  const refreshFunction = '  const loadRefreshInfo=async()=>{setRefreshLoading(true);setRefreshError("");try{setRefreshInfo(await getJson("/api/refresh-data"));}catch(error){setRefreshInfo(null);setRefreshError(error.message);}finally{setRefreshLoading(false);}};\n';
+  if (!source.includes(refreshFunction)) throw new Error("A törzsadatcsomag-ellenőrző függvény nem található.");
+  const startRefresh = '  const startRefresh=async()=>{setRefreshLoading(true);setRefreshError("");try{setRefreshInfo(await getJson("/api/refresh-data",{method:"POST",headers:{"content-type":"application/json","x-admin-token":adminToken},body:"{}"}));}catch(error){setRefreshError(error.message);}finally{setRefreshLoading(false);}};\n';
+  source = source.replace(refreshFunction, `${refreshFunction}${startRefresh}`);
+}
+
+const refreshBlockStart = source.indexOf('    {topPanel==="refresh"&&<section className="top-drawer refresh-drawer">');
+const refreshBlockEnd = source.indexOf('\n    <section className="hero">', refreshBlockStart);
+if (refreshBlockStart < 0 || refreshBlockEnd < 0) throw new Error("A Frissítés panel nem található.");
+const currentRefreshBlock = source.slice(refreshBlockStart, refreshBlockEnd);
+if (!currentRefreshBlock.includes("startRefresh")) {
+  const nextRefreshBlock = `    {topPanel==="refresh"&&<section className="top-drawer refresh-drawer">
+      <h2>{L("Törzsadat-frissítés","Master data update")}</h2>
+      <p>{L("A NAV/OpenKKK publikálási mappában elérhető legfrissebb törzsadat-csomagok. A kézi indítás ugyanazt az ellenőrzött GitHub Actions importfolyamatot futtatja, mint a napi automatikus frissítés.","Latest master data packages in the NAV/OpenKKK publication folders. Manual start runs the same validated GitHub Actions import pipeline as the daily update.")}</p>
+      {refreshLoading&&<p className="cnen-loading"><LoaderCircle className="spin" size={17}/>{L("Frissítési művelet folyamatban…","Update operation in progress…")}</p>}
+      {refreshError&&<p className="question">{refreshError}</p>}
+      {refreshInfo?.packages?.length>0&&<div className="refresh-packages">{refreshInfo.packages.map((pkg)=><a className="refresh-package" key={pkg.kind} href={pkg.downloadUrl} target="_blank" rel="noreferrer" download><code>{pkg.kind.toUpperCase()}</code><span>{pkg.fileName}</span><em>{L("Adatnap","Data date")}: {pkg.dataDate}</em><ExternalLink size={15}/></a>)}</div>}
+      {refreshInfo?.errors?.length>0&&<p className="question">{refreshInfo.errors.join(" · ")}</p>}
+      {refreshInfo?.status==="started"&&<p className="refresh-success"><b>{L("A kézi törzsadat-frissítés elindult.","Manual master data update started.")}</b> {refreshInfo.actionsUrl&&<a href={refreshInfo.actionsUrl} target="_blank" rel="noreferrer">{L("Futás megnyitása a GitHub Actionsben","Open run in GitHub Actions")}<ExternalLink size={14}/></a>}</p>}
+      {["ok","partial"].includes(refreshInfo?.status)&&<small>{L("Ellenőrizve","Checked")}: {new Date(refreshInfo.checkedAt).toLocaleString(lang==="hu"?"hu-HU":"en-GB")}</small>}
+      <div className="admin-login refresh-actions">
+        <input type="password" value={adminToken} onChange={(event)=>setAdminToken(event.target.value)} placeholder={L("Admin-token a kézi indításhoz","Admin token for manual start")}/>
+        <button type="button" onClick={startRefresh} disabled={refreshLoading}>{L("Frissítés indítása","Start update")}</button>
+        <button type="button" onClick={loadRefreshInfo} disabled={refreshLoading}>{L("Csomagok újraellenőrzése","Check packages again")}</button>
+      </div>
+      <small>{L("A szolgáltatáson az ADMIN_TOKEN (vagy REFRESH_ADMIN_TOKEN) és a GitHub Actions jogosultságú GITHUB_ACTIONS_TOKEN környezeti változó szükséges.","The service requires ADMIN_TOKEN (or REFRESH_ADMIN_TOKEN) and a GITHUB_ACTIONS_TOKEN with Actions permission.")}</small>
+    </section>}`;
+  source = source.slice(0, refreshBlockStart) + nextRefreshBlock + source.slice(refreshBlockEnd);
+}
+
 await writeFile(appPath, source, "utf8");
-console.log("App.jsx nyelvi, KN-hierarchiai, dinamikus EU TARIC-link, tallózási, kézi kódbeviteli és eredményelrendezési javítások alkalmazva.");
+console.log("App.jsx nyelvi, KN-hierarchiai, dinamikus EU TARIC-link, tallózási, kézi kódbeviteli, eredményelrendezési és kézi törzsadat-frissítési javítások alkalmazva.");
