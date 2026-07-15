@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TARIC / KN10 tarifálási kereső</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>TARIC / KN10 tarifálási kereső</h1>
+  <p class="subtitle">NAV eVÁM Törzsek alapján &mdash; nem hivatalos, tájékoztató jellegű eszköz</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Termékleírás alapú VTSZ-keresés</h2>
+    <form id="kereses-form">
+      <input type="text" id="kereses-q" placeholder="pl. élő ló, kacsa, csokoládé..." minlength="2" required>
+      <button type="submit">Keresés</button>
+    </form>
+    <div id="kereses-eredmeny"></div>
+  </section>
+
+  <section class="card">
+    <h2>2. Teljes tarifálás</h2>
+    <form id="tarifalas-form">
+      <label>VTSZ (2-10 jegy)
+        <input type="text" id="tarifalas-vtsz" placeholder="pl. 0207412010" minlength="2" maxlength="10" inputmode="numeric" pattern="[0-9]{2,10}" required>
+      </label>
+      <label>Származási ország
+        <select id="tarifalas-orszag">
+          <option value="">(mind)</option>
+        </select>
+      </label>
+      <label>Dátum
+        <input type="date" id="tarifalas-datum">
+      </label>
+      <button type="submit">Tarifálás</button>
+    </form>
+    <div id="tarifalas-eredmeny"></div>
+  </section>
+</main>
+
+<footer>
+  <p>Adatforrás: NAV eVÁM Törzsadat publikálás. Az INTÉZKEDÉSTÍPUS-nevek forrása a TARIC_WEB kézikönyv (2011), nem feltétlenül teljes körű a legújabb kódokra. Hivatalos, kötelező erejű tarifálásért forduljon a NAV TARIC Web rendszeréhez vagy kérjen kötelező érvényű vámtarifa-besorolást (KTF).</p>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
