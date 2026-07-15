@@ -1,29 +1,33 @@
 # TARIC / KN10 tarifálási kereső
 
-FastAPI-alapú webalkalmazás a NAV eVÁM Törzsekből előállított, futáskor felépített SQLite-adatbázissal. Termékleírás alapján VTSZ-t keres, valamint VTSZ + származási ország + dátum szerint lekéri a nómenklatúrát, vámtételeket, ÁFA-kiegészítő kódokat és importintézkedéseket.
+FastAPI-alapú webalkalmazás a `TARIC_2026` repositoryban publikált NAV/eVÁM statikus adatkészlet fölött. Termékleírás alapján VTSZ-t keres, valamint VTSZ + származási ország + dátum szerint megjeleníti a nómenklatúrát, vámtételeket, ÁFA-kulcsot és importintézkedéseket.
 
 > **Fontos:** tájékoztató jellegű, nem hivatalos eszköz. Kötelező érvényű besoroláshoz a NAV TARIC Web rendszerét vagy kötelező tarifális felvilágosítást kell használni.
+
+## Adatfelépítés
+
+A nagy SQLite-fájl nem kerül a Git repositoryba. A build során a `scripts/materialize_db.py` letölti a fő repóban lévő `taric-2026-render-site.zip` állományt, majd abból helyben felépíti és indexeli a `taric_tarifalas.db` adatbázist.
+
+Az adatforrás felülírható a `TARIC_DATASET_URL` környezeti változóval.
 
 ## Helyi futtatás
 
 ```bash
-python scripts/materialize_db.py
 pip install -r requirements.txt
+python scripts/materialize_db.py
 uvicorn app.main:app --reload --port 8000
 ```
 
 Ezután: `http://localhost:8000`
 
-A `taric_tarifalas.db` nincs verziókezelésben. A `data/taric_data.tar.xz` tömörített, az alkalmazás által ténylegesen használt táblákat tartalmazza; a `scripts/materialize_db.py` ebből építi fel az adatbázist és az indexeket.
-
 ## Render
 
 A fő `TARIC_2026` repository gyökerében lévő `render.yaml` külön Python webszolgáltatásként tartalmazza ezt az alkalmazást, `rootDir: taric-tarifalas-app` beállítással.
 
-Önálló repository esetén az ebben a mappában lévő `render.yaml` is használható:
+Önálló repository esetén az ebben a mappában lévő `render.yaml` használható:
 
-- Build command: `python scripts/materialize_db.py && pip install -r requirements.txt`
-- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Build: `pip install -r requirements.txt && python scripts/materialize_db.py`
+- Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Health check: `/api/healthz`
 
 ## API
@@ -33,8 +37,9 @@ A fő `TARIC_2026` repository gyökerében lévő `render.yaml` külön Python w
 - `GET /api/orszagok` — országlista
 - `GET /api/healthz` — állapotellenőrzés
 
-## Ismert korlátok
+## Korlátok
 
-- Az intézkedéstípusok magyar megnevezése részben a NAV TARIC_WEB kézikönyv régebbi kódlistájára épül, ezért új típusoknál hiányozhat.
-- A kiegészítő kódokhoz kötött összetett vámtételképletek teljes feloldása még nincs megvalósítva.
+- A statikus adatkészlet összesített vámtétel-kifejezéseket tartalmaz; az összetett képletek nem kerülnek külön elemekre bontásra.
+- Egyes preferenciális országcsoportok nem rendelhetők egyetlen ISO országkódhoz; ország nélkül lekérdezve ezek is megjelennek.
+- Az ÁFA-kiegészítő kódok külön feloldása még nincs megvalósítva.
 - A vámtétel- és intézkedéslisták lekérdezésenként legfeljebb 300 sort adnak vissza.
