@@ -95,7 +95,6 @@ jobs:
           PY
 
       - name: Publish orphan static-site branch
-        if: github.event_name != 'pull_request'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
