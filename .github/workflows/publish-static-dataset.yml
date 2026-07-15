@@ -1,0 +1,112 @@
+name: Publish TARIC static dataset
+
+on:
+  pull_request:
+    paths:
+      - taric-2026-render-site.zip
+      - .github/workflows/publish-static-dataset.yml
+  push:
+    branches:
+      - main
+    paths:
+      - taric-2026-render-site.zip
+      - .github/workflows/publish-static-dataset.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-taric-static-dataset-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate and unpack dataset
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+          import shutil
+          import zipfile
+
+          archive = Path("taric-2026-render-site.zip")
+          output = Path("_static_site")
+          required_dirs = {"n", "d", "m", "e", "x"}
+
+          if not archive.is_file():
+              raise SystemExit(f"Hiányzó forrásarchívum: {archive}")
+
+          if output.exists():
+              shutil.rmtree(output)
+          output.mkdir()
+
+          with zipfile.ZipFile(archive) as zf:
+              if zf.testzip() is not None:
+                  raise SystemExit("A ZIP sérült.")
+              for member in zf.infolist():
+                  name = member.filename.replace("\\", "/")
+                  if not name.startswith("render_site/"):
+                      raise SystemExit(f"Váratlan ZIP-útvonal: {name}")
+                  relative = name.removeprefix("render_site/")
+                  if not relative or member.is_dir():
+                      continue
+                  target = (output / relative).resolve()
+                  if output.resolve() not in target.parents:
+                      raise SystemExit(f"Nem biztonságos ZIP-útvonal: {name}")
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(zf.read(member))
+
+          if not (output / "meta.json").is_file():
+              raise SystemExit("Hiányzik a meta.json.")
+          missing = sorted(required_dirs - {p.name for p in output.iterdir() if p.is_dir()})
+          if missing:
+              raise SystemExit(f"Hiányzó adatmappák: {', '.join(missing)}")
+
+          json_files = sorted(output.rglob("*.json"))
+          for path in json_files:
+              with path.open("r", encoding="utf-8") as handle:
+                  json.load(handle)
+
+          meta = json.loads((output / "meta.json").read_text(encoding="utf-8"))
+          manifest = {
+              "sourceArchive": archive.name,
+              "sourceSha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+              "jsonFiles": len(json_files),
+              "dataBytes": sum(path.stat().st_size for path in output.rglob("*") if path.is_file()),
+              "versions": {
+                  "kn10": meta.get("kn10"),
+                  "cnen": meta.get("cnen"),
+                  "duties": meta.get("duties"),
+              },
+          }
+          (output / "dataset-manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(manifest, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Publish orphan static-site branch
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd _static_site
+          touch .nojekyll
+          git init
+          git checkout -B static-site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Publish TARIC 2026 static dataset"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin static-site
