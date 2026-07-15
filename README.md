@@ -26,6 +26,28 @@ Gyártási build:
 npm run build
 ```
 
+## FastAPI tarifálási kereső
+
+A repository `taric-tarifalas-app` mappája külön Python/FastAPI alkalmazást tartalmaz. A build során a gyökérben tárolt `taric-2026-render-site.zip` statikus adatkészletből helyben építi fel az SQLite-adatbázist.
+
+Helyi indítás:
+
+```bash
+cd taric-tarifalas-app
+pip install -r requirements.txt
+python scripts/materialize_db.py
+uvicorn app.main:app --reload --port 8000
+```
+
+API-végpontok:
+
+- `/api/kereses`
+- `/api/tarifalas`
+- `/api/orszagok`
+- `/api/healthz`
+
+A gyökérben lévő `render.yaml` a React/Node szolgáltatás mellett ezt a Python webszolgáltatást is definiálja.
+
 ## Netlify
 
 A repository gyökerében lévő `netlify.toml` beállításai:
