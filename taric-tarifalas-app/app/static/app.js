@@ -133,7 +133,7 @@ function renderTarifalas(data, box) {
         ? esc(item.INTEZKEDES_NEV)
         : `<span class="badge">${esc(item.INTEZKEDES_TIPUS)}</span> ismeretlen kód`;
       const duty = item.VAMTETEL
-        ? `${esc(item.VAMTETEL)}${item.DEVIZANEM_KOD ? ` ${esc(item.DEVIZANEM_KOD)}` : " %"}${item.MENNYISEGI_EGYSEG ? ` / ${esc(item.MENNYISEGI_EGYSEG)}` : ""}`
+        ? esc(item.VAMTETEL)
         : "(l. kiegészítő kód / feltétel)";
       html += `<tr><td>${esc(item.VTSZ)}</td><td>${esc(item.SZARMAZASI_HELY_NEV || item.SZARMAZASI_HELY)}</td><td>${measure}</td><td>${duty}</td><td>${esc(item.JOGSZABALY)}</td><td>${esc(item.ERVENYESSEG_KEZDETE)} – ${item.ERVENYESSEG_VEGE ? esc(item.ERVENYESSEG_VEGE) : "∞"}</td></tr>`;
     }
