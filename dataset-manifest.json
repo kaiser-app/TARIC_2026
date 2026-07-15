@@ -1,0 +1,11 @@
+{
+  "sourceArchive": "taric-2026-render-site.zip",
+  "sourceSha256": "dcfef2d8b91c96db76ecb327b376641e4d1b9a3eac2a728bce7179de3927c883",
+  "jsonFiles": 481,
+  "dataBytes": 27020079,
+  "versions": {
+    "kn10": "2026.07.11",
+    "cnen": "2026.02.13",
+    "duties": "2026.07.09"
+  }
+}
