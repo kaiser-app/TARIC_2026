@@ -1,0 +1,64 @@
+:root {
+  --bg: #f7f7f5;
+  --card-bg: #ffffff;
+  --border: #e0dfda;
+  --text: #2b2a27;
+  --muted: #6b6a66;
+  --accent: #b5651d;
+  --accent-dark: #8a4d16;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 0 1rem 3rem;
+}
+header {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 0 1rem;
+}
+h1 { margin-bottom: 0.2rem; font-size: 1.6rem; }
+.subtitle { color: var(--muted); margin-top: 0; font-size: 0.9rem; }
+main { max-width: 900px; margin: 0 auto; }
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.3rem 1.5rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+.card h2 { font-size: 1.1rem; margin-top: 0; }
+form { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: flex-end; }
+label { display: flex; flex-direction: column; font-size: 0.85rem; color: var(--muted); gap: 0.3rem; }
+input, select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+#kereses-q { flex: 1; min-width: 220px; }
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.55rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+button:hover { background: var(--accent-dark); }
+button:disabled { opacity: 0.65; cursor: wait; }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.87rem; }
+th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+tr:hover { background: #faf6f0; }
+.vtsz-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+.section-title { margin-top: 1.3rem; margin-bottom: 0.3rem; font-size: 0.95rem; color: var(--accent-dark); }
+.empty { color: var(--muted); font-style: italic; margin-top: 0.8rem; }
+.error { color: #9f1d1d; margin-top: 0.8rem; }
+footer { max-width: 900px; margin: 2rem auto 0; color: var(--muted); font-size: 0.78rem; }
+.badge { display: inline-block; background: #f0ece3; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; margin-left: 0.3rem; }
