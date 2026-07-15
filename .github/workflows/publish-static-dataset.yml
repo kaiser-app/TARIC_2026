@@ -1,6 +1,10 @@
 name: Publish TARIC static dataset
 
 on:
+  pull_request:
+    paths:
+      - taric-2026-render-site.zip
+      - .github/workflows/publish-static-dataset.yml
   push:
     branches:
       - main
@@ -13,14 +17,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-taric-static-dataset
+  group: publish-taric-static-dataset-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   publish:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout main
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Validate and unpack dataset
@@ -91,6 +95,7 @@ jobs:
           PY
 
       - name: Publish orphan static-site branch
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
